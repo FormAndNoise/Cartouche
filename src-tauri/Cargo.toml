@@ -1,0 +1,42 @@
+[package]
+name = "tarot-socket-board"
+version = "0.1.0"
+description = "Local-first desktop app for artists managing large multi-deliverable projects via a socket grid."
+authors = ["Tarot Socket Board Contributors"]
+edition = "2021"
+rust-version = "1.77"
+
+# The library is what Tauri embeds; the binary is a thin re-export so the app
+# can also be run with `cargo run` for smoke testing.
+[lib]
+name = "tarot_socket_board_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0.0", features = [] }
+tauri-plugin-dialog = "2.0.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+# Lightweight assertion helpers for unit tests.
+pretty_assertions = "1"
+
+[profile.dev]
+# Faster incremental builds during development.
+incremental = true
+
+[profile.release]
+# Smaller binaries for distribution.
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
+
+# Features that gate heavy optional crates so the smoke build stays light.
+[features]
+default = []
