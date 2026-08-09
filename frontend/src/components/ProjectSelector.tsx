@@ -86,10 +86,16 @@ export function ProjectSelector() {
         )}
 
         <h2>Create a new project</h2>
-        <form onSubmit={onCreate} aria-label="Create new project">
+        <form onSubmit={onCreate} onReset={undefined} noValidate aria-label="Create new project">
           <label className="field">
             <span>Project name</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Tarot Deck" required />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Tarot Deck"
+              required
+              data-testid="project-name-input"
+            />
           </label>
           <div className="form-row">
             <label className="field">
@@ -101,6 +107,7 @@ export function ProjectSelector() {
                 value={count}
                 onChange={(e) => setCount(Number(e.target.value))}
                 aria-label="Number of sockets"
+                data-testid="socket-count-input"
               />
             </label>
             <button className="primary" type="submit" disabled={busy}>
@@ -109,7 +116,12 @@ export function ProjectSelector() {
           </div>
           <label className="field">
             <span>Project path (optional — defaults to ./&lt;name&gt;.tarot)</span>
-            <input value={path} onChange={(e) => setPath(e.target.value)} placeholder="C:/Projects/my-deck" />
+            <input
+              value={path}
+              onChange={(e) => setPath(e.target.value)}
+              placeholder="C:/Projects/my-deck"
+              data-testid="project-path-input"
+            />
           </label>
         </form>
 

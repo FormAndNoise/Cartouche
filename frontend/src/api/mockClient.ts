@@ -16,6 +16,7 @@
  *    asynchronously (US-B06, US-B07).
  */
 import type { BackendClient } from './client';
+import { readBlobBytes, readBlobText } from './blobUtil';
 import {
   ApiError,
   emptyMetadata,
@@ -362,7 +363,7 @@ export class MockBackendClient implements BackendClient {
     let hash = 'no-content';
     if (blob) {
       try {
-        bytes = new Uint8Array(await blob.arrayBuffer());
+        bytes = await readBlobBytes(blob);
         hash = await sha256Hex(bytes);
       } catch {
         throw err('FILE_UNREADABLE', `Cannot read file ${sourcePath}`, { source_path: sourcePath });
@@ -396,7 +397,7 @@ export class MockBackendClient implements BackendClient {
     if (work.extracted_text_state === 'pending') {
       setTimeout(async () => {
         try {
-          work.extracted_text = blob ? await blob.text() : '(no content available in mock mode)';
+          work.extracted_text = blob ? await readBlobText(blob) : '(no content available in mock mode)';
           work.extracted_text_state = 'ready';
         } catch {
           work.extracted_text_state = 'failed';
@@ -481,7 +482,9 @@ export class MockBackendClient implements BackendClient {
       w.extracted_text_state = 'pending';
       setTimeout(async () => {
         try {
-          w.extracted_text = w.source_blob ? await w.source_blob.text() : '(no content available in mock mode)';
+          w.extracted_text = w.source_blob
+            ? await readBlobText(w.source_blob)
+            : '(no content available in mock mode)';
           w.extracted_text_state = 'ready';
         } catch {
           w.extracted_text_state = 'failed';
@@ -532,11 +535,12 @@ export class MockBackendClient implements BackendClient {
       const warnings: JobStatus['warnings'] = [];
       let processed = 0;
       let skipped = 0;
-      let cursor = 0; // for append mode: next untitled socket index
+      let cursor = 0; // for append mode: next candidate socket index
 
       const applyRow = (rowIndex: number, row: string[]): boolean => {
         let target: SocketState | undefined;
         if (req.mode === 'update') {
+          // Row N maps to socket N positionally.
           target = p.sockets[rowIndex];
           if (!target) {
             warnings.push({
@@ -546,26 +550,36 @@ export class MockBackendClient implements BackendClient {
             });
             return false;
           }
+          if (target.locked) {
+            warnings.push({ row: rowIndex + 1, reason: 'Socket is locked', code: 'LOCKED' });
+            return false;
+          }
         } else {
-          while (cursor < p.sockets.length && p.sockets[cursor].title.trim() !== '') cursor++;
+          // Append: advance to the next empty, unlocked socket. Locked
+          // sockets are reported (AC-B05.4) and passed over — the row is
+          // not consumed by a socket it cannot write to.
+          while (
+            cursor < p.sockets.length &&
+            (p.sockets[cursor].title.trim() !== '' || p.sockets[cursor].locked)
+          ) {
+            if (p.sockets[cursor].locked) {
+              warnings.push({ row: rowIndex + 1, reason: 'Socket is locked', code: 'LOCKED' });
+            }
+            cursor++;
+          }
           target = p.sockets[cursor];
           if (!target) {
             warnings.push({ row: rowIndex + 1, reason: 'No empty socket left to append into', code: 'OUT_OF_RANGE' });
             return false;
           }
-          cursor++;
-        }
-        if (target.locked) {
-          warnings.push({ row: rowIndex + 1, reason: 'Socket is locked', code: 'LOCKED' });
-          return false;
         }
         const title = (row[titleIdx] ?? '').trim();
         if (title === '') {
           warnings.push({ row: rowIndex + 1, reason: 'Empty title', code: 'ROW_VALIDATION_ERROR' });
           return false;
         }
-        target.title = title;
-        if (notesIdx >= 0) target.notes = (row[notesIdx] ?? '').trim();
+        // Validate ALL fields before touching the socket so a bad row is
+        // skipped atomically (AC-B05.3) — never partially applied.
         const meta: SocketMetadata = { ...target.metadata };
         if (statusIdx >= 0) {
           const v = (row[statusIdx] ?? '').trim();
@@ -587,7 +601,12 @@ export class MockBackendClient implements BackendClient {
           const d = (row[dueIdx] ?? '').trim();
           meta.due_date = d === '' ? null : d;
         }
+        // All valid — apply. (Only a successful apply consumes the slot in
+        // append mode, so an invalid row doesn't burn an empty socket.)
+        target.title = title;
+        if (notesIdx >= 0) target.notes = (row[notesIdx] ?? '').trim();
         target.metadata = meta;
+        if (req.mode === 'append') cursor++;
         return true;
       };
 

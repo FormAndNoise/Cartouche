@@ -7,6 +7,7 @@
  * with processed/skipped rows and per-row warnings (AC-F08.3).
  */
 import { useEffect, useRef, useState } from 'react';
+import { readBlobText } from '../api/blobUtil';
 import type { CsvPreview, JobStatus } from '../api/types';
 import { errorMessage, useBoard } from '../state/store';
 import { Modal } from './Modal';
@@ -36,7 +37,7 @@ export function CsvImportModal({ onClose }: { onClose: () => void }) {
     if (!f) return;
     setError(null);
     try {
-      const text = await f.text();
+      const text = await readBlobText(f);
       const p = await board.client.previewCsv({ project_path: project.path, csv_text: text });
       setCsvText(text);
       setFileName(f.name);
@@ -96,8 +97,11 @@ export function CsvImportModal({ onClose }: { onClose: () => void }) {
       {phase === 'preview' && preview && (
         <>
           <p style={{ fontSize: '0.85rem' }}>
-            <strong>{fileName}</strong> — {preview.rows_total} data row{preview.rows_total === 1 ? '' : 's'}.
-            No changes have been made yet.
+            <strong>{fileName}</strong>
+          </p>
+          <p style={{ fontSize: '0.85rem' }} data-testid="csv-preview-count">
+            {preview.rows_total} data row{preview.rows_total === 1 ? '' : 's'}. No changes have been
+            made yet.
           </p>
           <table className="csv-preview-table" aria-label="CSV preview">
             <thead>
