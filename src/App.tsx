@@ -30,7 +30,10 @@ export default function App() {
         </span>
       </header>
       <section className="app-placeholder" data-testid="app-placeholder">
-        <p>Project scaffold ready. Backend and UI components are pending — see REQUIREMENTS.md.</p>
+        <p>
+          Project scaffold ready. Backend and UI components are pending — see
+          REQUIREMENTS.md.
+        </p>
       </section>
     </main>
   );

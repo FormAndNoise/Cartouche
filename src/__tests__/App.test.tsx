@@ -41,9 +41,7 @@ describe("App smoke test", () => {
     // The version placeholder resolves to the mocked backend response,
     // proving the IPC `invoke` path is wired and awaited.
     await waitFor(() => {
-      expect(screen.getByTestId("app-version")).toHaveTextContent(
-        "0.1.0-test",
-      );
+      expect(screen.getByTestId("app-version")).toHaveTextContent("0.1.0-test");
     });
   });
 
