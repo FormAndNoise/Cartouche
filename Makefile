@@ -13,7 +13,7 @@
 
 .PHONY: install install-frontend install-backend build build-frontend build-backend \
         test test-frontend test-backend lint lint-frontend lint-backend format \
-        dev dev-tauri clean check
+        format-check dev dev-tauri clean check
 
 # --- Install ---
 
@@ -61,6 +61,10 @@ format:
 	pnpm format
 	cd src-tauri && cargo fmt
 
+format-check:
+	pnpm format:check
+	cd src-tauri && cargo fmt --check
+
 # --- Dev ---
 
 dev:
@@ -77,5 +81,5 @@ clean:
 
 # --- All-in-one check (CI equivalent) ---
 
-check: install lint test build
-	@echo "install + lint + test + build all passed"
+check: install lint format-check test build
+	@echo "install + lint + format-check + test + build all passed"
