@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Tarot Socket Board",
+  "productName": "Cartouche",
   "version": "0.1.0",
-  "identifier": "com.tarotsocketboard.app",
+  "identifier": "com.cartouche.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "beforeBuildCommand": "pnpm build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Tarot Socket Board",
+        "title": "Cartouche",
         "width": 1280,
         "height": 800,
         "minWidth": 800,

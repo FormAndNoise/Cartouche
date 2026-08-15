@@ -1,9 +1,9 @@
 {
-  "name": "tarot-socket-board",
+  "name": "cartouche",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Local-first desktop app for artists managing large multi-deliverable projects via a socket grid.",
+  "description": "Cartouche — Local-first desktop app for artists managing large multi-deliverable creative projects.",
   "scripts": {
     "dev": "vite",
     "dev:tauri": "tauri dev",
