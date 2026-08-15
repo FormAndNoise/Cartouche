@@ -1,39 +1,27 @@
 /**
  * Typed wrappers over the Tauri IPC command surface (US-B01, US-B02, US-B03).
  *
- * Components import from `@/lib/api` rather than reaching into
- * `@tauri-apps/api` directly. Command names, argument mapping (camelCase
- * here, snake_case on the Rust side), and the error envelope follow
- * docs/api.md and ARCHITECTURE.md §4-5.
+ * Re-exports domain types and functions from `src/api/` for backwards compatibility,
+ * while maintaining low-level typed wrappers over `@tauri-apps/api/core`.
  */
 
 import { invoke } from "@tauri-apps/api/core";
 
 export { invoke };
 
-/** Wire format of a socket row, mirroring the Rust `Socket` model. */
-export interface Socket {
-  id: number;
-  position: number;
-  title: string;
-  notes: string;
-  metadata_json: string;
-  locked: boolean;
-  selected_work_id: number | null;
-}
+export type {
+  Socket,
+  Project,
+  SocketMetadata,
+  Work,
+  MediaKind,
+  SocketStatus,
+  ApiErrorEnvelope,
+  CreateProjectRequest,
+  UpdateSocketRequest,
+} from "../api/types";
+export { ApiError } from "../api/types";
 
-/** Wire format of a project, mirroring the Rust `Project` model. */
-export interface Project {
-  name: string;
-  path: string;
-  grid_columns: number;
-  sockets: Socket[];
-}
-
-/**
- * Error codes the backend can return (fixed enum, ARCHITECTURE.md §4).
- * The UI matches on these instead of parsing free-form messages.
- */
 export type ApiErrorCode =
   | "INVALID_SOCKET_COUNT"
   | "INVALID_GRID_COLUMNS"
@@ -55,31 +43,10 @@ export type ApiErrorCode =
   | "IO_ERROR"
   | "INTERNAL_ERROR";
 
-/** Structured error envelope returned by every command (US-B09). */
-export interface ApiErrorEnvelope {
-  code: ApiErrorCode | string;
-  message: string;
-  details: Record<string, unknown> | null;
-}
-
-/** Error thrown by every wrapper in this module. */
-export class ApiError extends Error {
-  readonly code: string;
-  readonly details: Record<string, unknown> | null;
-
-  constructor(envelope: ApiErrorEnvelope) {
-    super(envelope.message);
-    this.name = "ApiError";
-    this.code = envelope.code;
-    this.details = envelope.details;
-  }
-}
+import { ApiError, type Project, type Socket } from "../api/types";
 
 /**
- * Normalize any rejection from `invoke` into an `ApiError`. Tauri rejects
- * with the serialized `{code, message, details}` envelope; anything else
- * (e.g. no backend under plain Vite) maps to `INTERNAL_ERROR` so the UI
- * never sees an unstructured failure.
+ * Normalize any rejection from `invoke` into an `ApiError`.
  */
 export function normalizeApiError(e: unknown): ApiError {
   if (e instanceof ApiError) {
@@ -121,86 +88,66 @@ async function call<T>(
   }
 }
 
-// --- Project commands (T-06, US-B02) ---
+// --- Project commands ---
 
-export interface CreateProjectRequest {
+export function createProject(req: {
   name: string;
   socketCount: number;
   projectPath: string;
-}
-
-/** Create a `.tarot` project with a fixed number of ordered sockets. */
-export function createProject(req: CreateProjectRequest): Promise<Project> {
+}): Promise<Project> {
   return call<Project>("create_project", { ...req });
 }
 
-/** Load an existing project by its directory path. */
 export function getProject(projectPath: string): Promise<Project> {
   return call<Project>("get_project", { projectPath });
 }
 
-export interface UpdateProjectRequest {
+export function updateProject(req: {
   projectPath: string;
   name?: string;
   gridColumns?: number;
-}
-
-/** Rename a project and/or change grid density (1-4 columns). */
-export function updateProject(req: UpdateProjectRequest): Promise<Project> {
+}): Promise<Project> {
   return call<Project>("update_project", { ...req });
 }
 
-// --- Socket commands (T-07, US-B03) ---
+// --- Socket commands ---
 
-export interface UpdateSocketRequest {
+export function updateSocket(req: {
   projectPath: string;
-  socketId: number;
+  socketId: number | string;
   title?: string;
   notes?: string;
   metadata?: Record<string, unknown>;
-}
-
-/**
- * Edit title, notes, or metadata of an unlocked socket. Locked sockets
- * reject content edits with `LOCKED`.
- */
-export function updateSocket(req: UpdateSocketRequest): Promise<Socket> {
+}): Promise<Socket> {
   return call<Socket>("update_socket", { ...req });
 }
 
-/** Lock or unlock a socket. */
 export function setSocketLock(req: {
   projectPath: string;
-  socketId: number;
+  socketId: number | string;
   locked: boolean;
 }): Promise<Socket> {
   return call<Socket>("set_socket_lock", { ...req });
 }
 
-/**
- * Reorder sockets atomically. `orderedSocketIds` must list every socket
- * in the project exactly once (`DUPLICATE_ID` / `MISSING_SOCKET` otherwise).
- */
 export function reorderSockets(req: {
   projectPath: string;
-  orderedSocketIds: number[];
+  orderedSocketIds: (number | string)[];
 }): Promise<Project> {
   return call<Project>("reorder_sockets", { ...req });
 }
 
-/** Archive (delete) an unlocked socket. */
 export function archiveSocket(req: {
   projectPath: string;
-  socketId: number;
+  socketId: number | string;
 }): Promise<void> {
   return call<void>("archive_socket", { ...req });
 }
 
-/** Select a candidate work as the winner, or pass null to clear. */
 export function selectWinner(req: {
   projectPath: string;
-  socketId: number;
-  workId: number | null;
+  socketId: number | string;
+  workId: number | string | null;
 }): Promise<Socket> {
   return call<Socket>("select_winner", { ...req });
 }

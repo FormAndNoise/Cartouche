@@ -11,6 +11,23 @@ pub struct Socket {
     pub metadata_json: String,
     pub locked: bool,
     pub selected_work_id: Option<i64>,
+    pub works: Vec<Work>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Work {
+    pub id: i64,
+    pub socket_id: i64,
+    pub title: String,
+    pub media_kind: String,
+    pub mime_type: Option<String>,
+    pub byte_size: i64,
+    pub sha256: String,
+    pub preview_uri: Option<String>,
+    pub preview_state: String,
+    pub extracted_text_state: String,
+    pub extracted_text: Option<String>,
+    pub metadata_json: String,
 }
 
 /// A project containing its ordered sockets.

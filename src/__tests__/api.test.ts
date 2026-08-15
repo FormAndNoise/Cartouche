@@ -24,13 +24,14 @@ import {
 const mockInvoke = vi.mocked(invoke);
 
 const socket: Socket = {
-  id: 7,
+  id: "7",
   position: 0,
   title: "The Fool",
   notes: "",
-  metadata_json: "{}",
   locked: false,
+  metadata: { status: "not_started", medium: "", tags: "", due_date: null },
   selected_work_id: null,
+  works: [],
 };
 
 const project: Project = {

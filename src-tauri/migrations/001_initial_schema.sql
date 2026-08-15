@@ -26,9 +26,12 @@ CREATE TABLE IF NOT EXISTS sockets (
 CREATE TABLE IF NOT EXISTS works (
     id INTEGER PRIMARY KEY,
     socket_id INTEGER NOT NULL REFERENCES sockets(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT '',
     asset_hash TEXT NOT NULL,
     asset_path TEXT NOT NULL,
     media_kind TEXT NOT NULL,
+    mime_type TEXT,
+    byte_size INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

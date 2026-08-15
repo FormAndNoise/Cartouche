@@ -22,6 +22,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.31", features = ["bundled"] }
 thiserror = "1"
+sha2 = "0.10"
+image = { version = "0.24", default-features = false, features = ["png", "jpeg", "gif", "bmp", "ico", "tiff"] }
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 # Lightweight assertion helpers for unit tests.
