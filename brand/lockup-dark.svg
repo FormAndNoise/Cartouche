@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 120" width="880" height="120">
+  <rect width="880" height="120" fill="#0B0B0B" />
+  <!-- Symbol Left -->
+  <g transform="translate(36, 28) scale(2.666)" fill="none" stroke="#6FA0BE" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="3.5" width="4.75" height="7.25" rx="1.5" />
+    <rect x="9.625" y="3.5" width="4.75" height="7.25" rx="1.5" />
+    <rect x="16.75" y="3.5" width="4.75" height="7.25" rx="1.5" />
+    <rect x="2.5" y="13.25" width="4.75" height="7.25" rx="1.5" />
+    <rect x="9.625" y="13.25" width="4.75" height="7.25" rx="1.5" />
+    <rect x="16.75" y="13.25" width="4.75" height="7.25" rx="1.5" />
+    <circle cx="12" cy="7.125" r="1.2" fill="#6FA0BE" stroke="none" />
+  </g>
+  <!-- Wordmark + Job Line -->
+  <text x="120" y="56" font-family="'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif" font-size="28" font-weight="600" fill="#F2EEE8" letter-spacing="-0.5px">Cartouche</text>
+  <text x="120" y="84" font-family="'Inter', -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="400" fill="#A8A49E" letter-spacing="0">Local workspace to stage, audition, and lock artwork into ordered deliverable grids.</text>
+</svg>
