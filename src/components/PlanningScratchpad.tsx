@@ -11,6 +11,8 @@ import {
   generatePlanningCsv,
   generatePlanningMarkdownDossier,
   getOrInitPlanningMatrix,
+  PLANNING_DOMAIN_PRESETS,
+  type PlanningDomainPreset,
   resolveSocketSymbolism,
   synthesizeTenantSymbolism,
 } from "../lib/planningMatrix";
@@ -53,6 +55,17 @@ export function PlanningScratchpad({
     });
   };
 
+  const handleApplyDomainPreset = async (preset: PlanningDomainPreset) => {
+    await saveMatrix({
+      subgroups: preset.subgroups.map((s) => ({ ...s })),
+      ranks: preset.ranks.map((r) => ({ ...r })),
+    });
+    board.pushToast(
+      "success",
+      `Loaded planning domain template: ${preset.name}`,
+    );
+  };
+
   const handleUpdateSubgroup = async (
     idx: number,
     patch: Partial<SubgroupDimension>,
@@ -75,6 +88,12 @@ export function PlanningScratchpad({
     await saveMatrix({ ...matrix, subgroups: [...matrix.subgroups, newSub] });
   };
 
+  const handleRemoveSubgroup = async (idx: number) => {
+    if (matrix.subgroups.length <= 1) return;
+    const newSubgroups = matrix.subgroups.filter((_, i) => i !== idx);
+    await saveMatrix({ ...matrix, subgroups: newSubgroups });
+  };
+
   const handleUpdateRank = async (
     idx: number,
     patch: Partial<RankDimension>,
@@ -93,6 +112,12 @@ export function PlanningScratchpad({
       archetype: "Archetype role...",
     };
     await saveMatrix({ ...matrix, ranks: [...matrix.ranks, newRank] });
+  };
+
+  const handleRemoveRank = async (idx: number) => {
+    if (matrix.ranks.length <= 1) return;
+    const newRanks = matrix.ranks.filter((_, i) => i !== idx);
+    await saveMatrix({ ...matrix, ranks: newRanks });
   };
 
   const handleCommitCell = async (socket: Socket) => {
@@ -214,7 +239,8 @@ export function PlanningScratchpad({
       if (filterGroup === "major" && sub !== "major") return false;
       if (filterGroup === "minor" && sub === "major") return false;
       if (
-        ["wands", "cups", "swords", "pentacles"].includes(filterGroup) &&
+        filterGroup !== "major" &&
+        filterGroup !== "minor" &&
         sub !== filterGroup
       )
         return false;
@@ -242,7 +268,7 @@ export function PlanningScratchpad({
             ← ⊞ Back to Grid
           </button>
           <div className="scratchpad-title-block">
-            <h1>Bottom-to-Top Planning Scratchpad</h1>
+            <h1>Planning Scratchpad & Domain Matrix</h1>
             <span className="scratchpad-subtitle">
               Dimensional Synthesis & Symbolism Ledger •{" "}
               {project.sockets.length} Deliverable Sockets
@@ -276,6 +302,20 @@ export function PlanningScratchpad({
         </div>
       </header>
 
+      {/* Domain Preset Bar */}
+      <div className="scratchpad-preset-bar">
+        <span className="preset-bar-label">Domain Presets:</span>
+        {PLANNING_DOMAIN_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            className="preset-pill-btn"
+            onClick={() => handleApplyDomainPreset(preset)}
+          >
+            {preset.name}
+          </button>
+        ))}
+      </div>
+
       {/* Navigation Sub-Tabs */}
       <nav className="scratchpad-tabs">
         <button
@@ -288,7 +328,7 @@ export function PlanningScratchpad({
           className={`scratchpad-tab ${activeTab === "subgroups" ? "active" : ""}`}
           onClick={() => setActiveTab("subgroups")}
         >
-          🔮 Subgroup & Suit Dimensions ({matrix.subgroups.length})
+          🔮 Subgroup & Category Dimensions ({matrix.subgroups.length})
         </button>
         <button
           className={`scratchpad-tab ${activeTab === "ranks" ? "active" : ""}`}
@@ -316,42 +356,15 @@ export function PlanningScratchpad({
               >
                 All Sockets
               </button>
-              <button
-                className={`filter-pill ${filterGroup === "major" ? "active" : ""}`}
-                onClick={() => setFilterGroup("major")}
-              >
-                Major Arcana
-              </button>
-              <button
-                className={`filter-pill ${filterGroup === "minor" ? "active" : ""}`}
-                onClick={() => setFilterGroup("minor")}
-              >
-                Minor Arcana
-              </button>
-              <button
-                className={`filter-pill ${filterGroup === "wands" ? "active" : ""}`}
-                onClick={() => setFilterGroup("wands")}
-              >
-                Wands
-              </button>
-              <button
-                className={`filter-pill ${filterGroup === "cups" ? "active" : ""}`}
-                onClick={() => setFilterGroup("cups")}
-              >
-                Cups
-              </button>
-              <button
-                className={`filter-pill ${filterGroup === "swords" ? "active" : ""}`}
-                onClick={() => setFilterGroup("swords")}
-              >
-                Swords
-              </button>
-              <button
-                className={`filter-pill ${filterGroup === "pentacles" ? "active" : ""}`}
-                onClick={() => setFilterGroup("pentacles")}
-              >
-                Pentacles
-              </button>
+              {matrix.subgroups.map((sub) => (
+                <button
+                  key={sub.id}
+                  className={`filter-pill ${filterGroup === sub.id ? "active" : ""}`}
+                  onClick={() => setFilterGroup(sub.id)}
+                >
+                  {sub.label.split("/")[0].trim()}
+                </button>
+              ))}
             </div>
 
             <div className="search-box">
@@ -370,9 +383,9 @@ export function PlanningScratchpad({
                 <tr>
                   <th style={{ width: "50px" }}>Pos</th>
                   <th style={{ width: "160px" }}>Title & Deliverable</th>
-                  <th style={{ width: "100px" }}>Group / Rank</th>
+                  <th style={{ width: "110px" }}>Group / Rank</th>
                   <th style={{ width: "90px" }}>Status</th>
-                  <th>Core Meaning & Symbolism</th>
+                  <th>Core Meaning & Concept</th>
                   <th>Visual Motifs & Key Imagery</th>
                   <th>Palette & Atmosphere</th>
                   <th>Composition & Brief</th>
@@ -617,12 +630,10 @@ export function PlanningScratchpad({
       {activeTab === "subgroups" && (
         <section className="scratchpad-content dimensions-view">
           <div className="dimension-intro">
-            <h3>Subgroup & Suit Dimensions (Vertical Slices)</h3>
+            <h3>Subgroup & Category Dimensions (Vertical Slices)</h3>
             <p>
-              Define the overarching elemental forces, visual motifs, and
-              palette rules that define each suit or card category. These
-              characteristics automatically synthesize across all ranks within
-              the subgroup.
+              Define the overarching elemental forces, categories, visual
+              motifs, and palette rules that define each suit or card group.
             </p>
           </div>
 
@@ -637,7 +648,18 @@ export function PlanningScratchpad({
                       handleUpdateSubgroup(idx, { label: e.target.value })
                     }
                   />
-                  <span className="dimension-id-badge">{sub.id}</span>
+                  <div className="dim-header-actions">
+                    <span className="dimension-id-badge">{sub.id}</span>
+                    {matrix.subgroups.length > 1 && (
+                      <button
+                        className="remove-dim-btn"
+                        onClick={() => handleRemoveSubgroup(idx)}
+                        title="Delete dimension"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="dimension-card-body">
@@ -645,7 +667,7 @@ export function PlanningScratchpad({
                     <span>Element / Domain:</span>
                     <input
                       value={sub.element || ""}
-                      placeholder="e.g. Fire / Willpower"
+                      placeholder="e.g. Fire / Willpower or Tier Category"
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { element: e.target.value })
                       }
@@ -691,7 +713,7 @@ export function PlanningScratchpad({
                     <span>Artistic Invariants / Lore:</span>
                     <input
                       value={sub.notes || ""}
-                      placeholder="e.g. Every card features live wood grain"
+                      placeholder="e.g. Invariants across cards..."
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { notes: e.target.value })
                       }
@@ -714,9 +736,8 @@ export function PlanningScratchpad({
           <div className="dimension-intro">
             <h3>Rank & Counterpart Dimensions (Horizontal Progression)</h3>
             <p>
-              Define what each rank (Ace..King or Step 1..N) means across all
-              suits. When an artist refines the universal meaning of Rank 1 or
-              Rank 13, it informs the synthesis across every suit.
+              Define what each rank (Step 1..N, Tier 1..N, Stage 1..N) means
+              across all categories.
             </p>
           </div>
 
@@ -729,6 +750,7 @@ export function PlanningScratchpad({
                   <th>Universal Meaning & Stage</th>
                   <th>Archetype Role</th>
                   <th>Compositional Framing Rule</th>
+                  <th style={{ width: "40px" }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -758,7 +780,7 @@ export function PlanningScratchpad({
                       <input
                         className="rank-input"
                         value={r.archetype || ""}
-                        placeholder="e.g. The Initiator"
+                        placeholder="e.g. The Initiator / Tank"
                         onChange={(e) =>
                           handleUpdateRank(idx, { archetype: e.target.value })
                         }
@@ -776,6 +798,17 @@ export function PlanningScratchpad({
                           })
                         }
                       />
+                    </td>
+                    <td>
+                      {matrix.ranks.length > 1 && (
+                        <button
+                          className="remove-dim-btn"
+                          onClick={() => handleRemoveRank(idx)}
+                          title="Delete rank"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -802,40 +835,44 @@ export function PlanningScratchpad({
           </div>
 
           <div className="synthesizer-matrix-grid">
-            {matrix.subgroups
-              .filter((s) => s.id !== "major")
-              .map((sub) => (
-                <div key={sub.id} className="synth-column">
-                  <div className="synth-column-header">
-                    <h4>{sub.label.split("/")[0]}</h4>
-                    <span className="synth-elem-tag">{sub.element}</span>
-                  </div>
+            {matrix.subgroups.map((sub) => (
+              <div key={sub.id} className="synth-column">
+                <div className="synth-column-header">
+                  <h4>{sub.label.split("/")[0]}</h4>
+                  <span className="synth-elem-tag">
+                    {sub.element || "Domain"}
+                  </span>
+                </div>
 
-                  <div className="synth-cards-list">
-                    {matrix.ranks.slice(0, 14).map((rank) => {
-                      const synth = synthesizeTenantSymbolism(sub, rank);
-                      return (
-                        <div key={rank.rankIndex} className="synth-card">
-                          <div className="synth-card-top">
-                            <span className="synth-rank-name">
-                              {rank.rankLabel.split("(")[0]}
-                            </span>
+                <div className="synth-cards-list">
+                  {matrix.ranks.slice(0, 16).map((rank) => {
+                    const synth = synthesizeTenantSymbolism(sub, rank);
+                    return (
+                      <div key={rank.rankIndex} className="synth-card">
+                        <div className="synth-card-top">
+                          <span className="synth-rank-name">
+                            {rank.rankLabel.split("(")[0]}
+                          </span>
+                          {rank.archetype && (
                             <span className="synth-archetype-tag">
                               {rank.archetype}
                             </span>
-                          </div>
-                          <p className="synth-meaning">{synth.core_meaning}</p>
+                          )}
+                        </div>
+                        <p className="synth-meaning">{synth.core_meaning}</p>
+                        {synth.visual_motifs && (
                           <div className="synth-meta">
                             <span className="synth-motifs">
                               {synth.visual_motifs}
                             </span>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              </div>
+            ))}
           </div>
         </section>
       )}

@@ -2,12 +2,12 @@
  * Socket grid with card taxonomy, sub-divisible group filtering,
  * sectioned category view, and Synchronized Counterpart Matrix (US-F02, US-F10).
  *
- * - Renders sockets in position order or filtered by Major/Minor/Suit groups.
+ * - Renders sockets in position order or filtered by Major/Minor/Suit groups or Custom Dimensions.
  * - View Modes:
  *    1. Standard Grid: 1–4 columns, density selectable.
  *    2. Sectioned: Broken into Major Arcana & Suit sections with headers.
- *    3. Suit Matrix: Side-by-side synchronized columns for equal subgroups
- *       (e.g., 4 suits pinned to counterparts scrolling vertically in unison).
+ *    3. Table Matrix: Side-by-side synchronized columns for equal subgroups or custom N×M grids
+ *       (e.g., Tarot suits, TCG Factions, Board game stages, Design token variants).
  * - Full keyboard traversal (arrow keys, Home, End, Enter/Space, Escape).
  */
 import {
@@ -18,9 +18,10 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import type { Project } from "../api/types";
+import type { MatrixConfig, Project } from "../api/types";
 import { useBoard } from "../state/context";
 import { CsvImportModal } from "./CsvImportModal";
+import { MatrixConfigModal } from "./MatrixConfigModal";
 import { PlanningScratchpad } from "./PlanningScratchpad";
 import { ProjectSettingsModal } from "./ProjectSettingsModal";
 import { SocketCard } from "./SocketCard";
@@ -40,6 +41,7 @@ export function SocketGrid({ project }: { project: Project }) {
   const lastFocused = useRef<string | null>(null);
   const [announce, setAnnounce] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [matrixConfigOpen, setMatrixConfigOpen] = useState(false);
   const [workspaceMode, setWorkspaceMode] = useState<"grid" | "scratchpad">(
     "grid",
   );
@@ -57,8 +59,8 @@ export function SocketGrid({ project }: { project: Project }) {
   const cols = Math.min(4, Math.max(1, project.grid_columns));
 
   const taxonomy = useMemo(
-    () => analyzeDeckTaxonomy(project.sockets),
-    [project.sockets],
+    () => analyzeDeckTaxonomy(project.sockets, project.metadata?.matrix_config),
+    [project.sockets, project.metadata?.matrix_config],
   );
 
   // Filtered sockets based on active group
@@ -98,65 +100,83 @@ export function SocketGrid({ project }: { project: Project }) {
   const closePanel = useCallback(() => {
     board.setSelectedSocket(null);
     if (lastFocused.current) focusCard(lastFocused.current);
-  }, [board, focusCard]);
+  }, [focusCard, board]);
 
-  const handleExportCrtch = async () => {
-    try {
-      let dest: string | null = null;
-      if (isTauriAvailable()) {
-        try {
-          const { save } = await import("@tauri-apps/plugin-dialog");
-          dest = await save({
-            defaultPath: `${project.name.replace(/[^\w.-]/g, "_")}.crtch`,
-            filters: [
-              {
-                name: "Cartouche Deck Package (*.crtch)",
-                extensions: ["crtch"],
-              },
-            ],
-          });
-        } catch {
-          dest = `${project.path}/${project.name.replace(/[^\w.-]/g, "_")}.crtch`;
-        }
-      } else {
-        dest = `${project.path}/${project.name.replace(/[^\w.-]/g, "_")}.crtch`;
-      }
-      if (!dest) return;
-      const res = await board.client.exportProject({
-        project_path: project.path,
-        destination_path: dest,
-      });
+  const handleSaveMatrixConfig = async (config: MatrixConfig | undefined) => {
+    const currentMeta = project.metadata || {};
+    await board.updateProjectMetadata({
+      ...currentMeta,
+      matrix_config: config,
+    });
+    if (config) {
+      setViewMode("matrix");
       board.pushToast(
-        "info",
-        `Exported .crtch package: ${res.path.split(/[\\/]/).pop()}`,
+        "success",
+        `Configured ${config.columns?.length || 4}-column comparative matrix table`,
       );
-    } catch (e) {
-      board.pushToast("error", errorMessage(e));
+    } else {
+      board.pushToast("info", "Matrix table layout reset to auto-detect");
     }
   };
 
-  const handleExportCsv = async () => {
-    try {
-      const csv = await board.client.exportCsv(project.path);
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute(
-        "download",
-        `${project.name.replace(/[^\w.-]/g, "_")}.csv`,
-      );
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      board.pushToast("info", "CSV exported successfully");
-    } catch (e) {
-      board.pushToast("error", errorMessage(e));
-    }
-  };
+  // Reorder handlers
+  const moveLeft = useCallback(
+    async (socketId: string) => {
+      const idx = sorted.findIndex((s) => s.id === socketId);
+      if (idx <= 0) return;
+      const current = sorted[idx];
+      const target = sorted[idx - 1];
+      if (current.locked || target.locked) {
+        board.pushToast("error", "Cannot reorder locked sockets");
+        return;
+      }
+      const newOrder = [...sorted.map((s) => s.id)];
+      newOrder[idx] = target.id;
+      newOrder[idx - 1] = current.id;
+      try {
+        await board.client.reorderSockets({
+          project_path: project.path,
+          ordered_socket_ids: newOrder,
+        });
+        await board.syncProject();
+        setAnnounce(`Moved ${current.title || "socket"} left`);
+        requestAnimationFrame(() => focusCard(socketId));
+      } catch (e) {
+        board.pushToast("error", errorMessage(e));
+      }
+    },
+    [sorted, project.path, board, focusCard],
+  );
 
-  /** Map arrow keys onto current active geometry. */
+  const moveRight = useCallback(
+    async (socketId: string) => {
+      const idx = sorted.findIndex((s) => s.id === socketId);
+      if (idx < 0 || idx >= sorted.length - 1) return;
+      const current = sorted[idx];
+      const target = sorted[idx + 1];
+      if (current.locked || target.locked) {
+        board.pushToast("error", "Cannot reorder locked sockets");
+        return;
+      }
+      const newOrder = [...sorted.map((s) => s.id)];
+      newOrder[idx] = target.id;
+      newOrder[idx + 1] = current.id;
+      try {
+        await board.client.reorderSockets({
+          project_path: project.path,
+          ordered_socket_ids: newOrder,
+        });
+        await board.syncProject();
+        setAnnounce(`Moved ${current.title || "socket"} right`);
+        requestAnimationFrame(() => focusCard(socketId));
+      } catch (e) {
+        board.pushToast("error", errorMessage(e));
+      }
+    },
+    [sorted, project.path, board, focusCard],
+  );
+
+  // Global key navigation within the grid
   const onGridKeyDown = (e: KeyboardEvent) => {
     const active = document.activeElement as HTMLElement | null;
     const activeId =
@@ -225,130 +245,230 @@ export function SocketGrid({ project }: { project: Project }) {
     if (next >= 0 && next < currentList.length) {
       e.preventDefault();
       focusCard(currentList[next].id);
-      setAnnounce(
-        `Socket ${currentList[next].position + 1} of ${currentList.length}`,
-      );
     }
   };
 
+  // Keyboard shortcut listener
   useEffect(() => {
-    if (lastFocused.current) {
-      /* layout changed */
-    }
-  }, [cols, viewMode, activeFilter]);
+    const handleWindowKeyDown = (e: globalThis.KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement | null;
+      const isInput =
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable);
+      if (isInput) return;
 
-  const selected = board.selectedSocketId
-    ? (sorted.find((s) => s.id === board.selectedSocketId) ?? null)
-    : null;
+      const activeId =
+        active?.getAttribute("data-testid")?.replace("socket-card-", "") ??
+        null;
+
+      // Reorder shortcuts
+      if (activeId && e.altKey) {
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          moveLeft(activeId);
+          return;
+        }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          moveRight(activeId);
+          return;
+        }
+      }
+
+      // Close modal/panel on Escape
+      if (e.key === "Escape" && board.selectedSocketId) {
+        e.preventDefault();
+        closePanel();
+        return;
+      }
+
+      // Open detail on Enter/Space
+      if (
+        activeId &&
+        (e.key === "Enter" || e.key === " ") &&
+        !board.selectedSocketId
+      ) {
+        e.preventDefault();
+        openSocket(activeId);
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleWindowKeyDown);
+    return () => window.removeEventListener("keydown", handleWindowKeyDown);
+  }, [board.selectedSocketId, closePanel, openSocket, moveLeft, moveRight]);
+
+  const selected = project.sockets.find((s) => s.id === board.selectedSocketId);
 
   return (
     <>
-      <header className="board-header">
-        <div className="board-header-title">
-          <h1>
-            {project.name}
-            <span className="path">{project.path}</span>
-          </h1>
-          {project.metadata?.author && (
-            <span className="header-author-badge">
-              By {project.metadata.author}
-              {project.metadata.edition ? ` · ${project.metadata.edition}` : ""}
-            </span>
-          )}
-        </div>
-
-        {viewMode !== "matrix" && (
-          <div
-            className="density-control"
-            role="group"
-            aria-label="Grid column density"
-          >
-            Columns:
-            {[1, 2, 3, 4].map((n) => (
-              <button
-                key={n}
-                aria-pressed={cols === n}
-                aria-label={`${n} column${n === 1 ? "" : "s"}`}
-                onClick={() => board.setGridColumns(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="header-actions">
-          <button
-            className={`btn-scratchpad-toggle ${workspaceMode === "scratchpad" ? "active" : ""}`}
-            onClick={() =>
-              setWorkspaceMode(
-                workspaceMode === "scratchpad" ? "grid" : "scratchpad",
-              )
-            }
-            title="Bottom-to-top planning scratchpad & symbolism spreadsheet"
-          >
-            {workspaceMode === "scratchpad"
-              ? "⊞ Deliverable Grid"
-              : "✎ Planning Scratchpad"}
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Edit Deck Metadata & Rights"
-            aria-label="Project Settings"
-          >
-            ⚙ Settings
-          </button>
-          <button onClick={handleExportCsv} title="Export CSV catalog">
-            Export CSV
-          </button>
-          <button onClick={() => board.setCsvImportOpen(true)}>
-            Import CSV…
-          </button>
-          <button
-            className="btn-crtch"
-            onClick={handleExportCrtch}
-            title="Export master self-contained .crtch package"
-          >
-            Export .crtch…
-          </button>
-          <button onClick={board.closeProject}>Close project</button>
-        </div>
-      </header>
-
       {workspaceMode === "scratchpad" ? (
-        <div className="board-main scratchpad-mode-main">
-          <PlanningScratchpad
-            project={project}
-            onBackToGrid={() => setWorkspaceMode("grid")}
-            onSelectSocket={(id) => openSocket(id)}
-          />
-          {selected && (
-            <SocketDetailPanel socket={selected} onClose={closePanel} />
-          )}
-        </div>
+        <PlanningScratchpad
+          project={project}
+          onBackToGrid={() => setWorkspaceMode("grid")}
+          onSelectSocket={(id) => {
+            setWorkspaceMode("grid");
+            openSocket(id);
+          }}
+        />
       ) : (
         <>
-          {/* Taxonomy & Group Partitioning Subheader */}
+          <header className="board-header">
+            <div className="board-header-left">
+              <button
+                className="back-btn"
+                onClick={() => board.closeProject()}
+                title="Close project and return to selection"
+                aria-label="Close project and return to selection"
+              >
+                ← Back
+              </button>
+              <h1 className="project-title">{project.name}</h1>
+              <span className="socket-count-badge">
+                {project.sockets.length} sockets
+              </span>
+            </div>
+
+            <div className="board-header-right">
+              {/* Workspace Mode: Scratchpad vs Grid */}
+              <button
+                className="scratchpad-toggle-btn"
+                onClick={() => setWorkspaceMode("scratchpad")}
+                title="Open Bottom-to-Top Planning Scratchpad & Symbolism Matrix"
+              >
+                🔮 Planning Scratchpad
+              </button>
+
+              {/* Column Density (only visible in regular grid mode) */}
+              {viewMode !== "matrix" && (
+                <div
+                  className="density-controls"
+                  role="group"
+                  aria-label="Grid column density"
+                >
+                  {[1, 2, 3, 4].map((c) => (
+                    <button
+                      key={c}
+                      className={`density-btn ${cols === c ? "active" : ""}`}
+                      onClick={() => board.setGridColumns(c)}
+                      aria-pressed={cols === c}
+                      aria-label={`${c} columns`}
+                      title={`${c} columns`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* CSV Import */}
+              <button
+                onClick={() => board.setCsvImportOpen(true)}
+                title="Import sockets from CSV"
+                aria-label="Import CSV…"
+              >
+                📥 Import CSV…
+              </button>
+
+              {/* Export CRTCH / Bundle */}
+              <button
+                onClick={async () => {
+                  try {
+                    let destPath = "";
+                    if (isTauriAvailable()) {
+                      const { save } =
+                        await import("@tauri-apps/plugin-dialog");
+                      const selectedPath = await save({
+                        filters: [
+                          {
+                            name: "Cartouche Project Bundle",
+                            extensions: ["crtch", "zip"],
+                          },
+                        ],
+                        defaultPath: `${project.name.toLowerCase().replace(/\s+/g, "_")}.crtch`,
+                      });
+                      if (!selectedPath) return;
+                      destPath = selectedPath;
+                    } else {
+                      destPath = `${project.path}/../${project.name.toLowerCase().replace(/\s+/g, "_")}.crtch`;
+                    }
+                    const res = await board.client.exportProject({
+                      project_path: project.path,
+                      destination_path: destPath,
+                    });
+                    board.pushToast(
+                      "success",
+                      `Exported project package (${res.manifest_sha256.slice(0, 8)}…)`,
+                    );
+                  } catch (err) {
+                    board.pushToast("error", errorMessage(err));
+                  }
+                }}
+                title="Export portable .crtch bundle"
+              >
+                📦 Export
+              </button>
+
+              {/* Repair scan */}
+              <button
+                onClick={async () => {
+                  try {
+                    const scan = await board.client.repairScan({
+                      project_path: project.path,
+                    });
+                    if (
+                      scan.missing_assets.length === 0 &&
+                      scan.orphans.length === 0
+                    ) {
+                      board.pushToast(
+                        "success",
+                        "Asset integrity verified: 0 missing, 0 orphans",
+                      );
+                    } else {
+                      board.pushToast(
+                        "info",
+                        `Integrity scan: ${scan.missing_assets.length} missing, ${scan.orphans.length} orphans`,
+                      );
+                    }
+                  } catch (err) {
+                    board.pushToast("error", errorMessage(err));
+                  }
+                }}
+                title="Scan assets for missing files or orphans"
+              >
+                🩺 Verify
+              </button>
+
+              {/* Project settings */}
+              <button
+                onClick={() => setSettingsOpen(true)}
+                title="Project Settings, Rights & Legal Metadata"
+              >
+                ⚙ Settings
+              </button>
+            </div>
+          </header>
+
+          {/* Grouping, Suit Filtering & Matrix View Mode Navigation Bar */}
           <div
-            className="taxonomy-nav-bar"
-            role="navigation"
-            aria-label="Deck Groups & View Modes"
+            className="taxonomy-bar"
+            role="toolbar"
+            aria-label="Deck Taxonomy and Views"
           >
             <div
               className="taxonomy-pills-group"
               role="tablist"
-              aria-label="Card Category Filters"
+              aria-label="Category Filters"
             >
               <button
                 className={`filter-pill ${activeFilter === "all" ? "active" : ""}`}
-                onClick={() => {
-                  setActiveFilter("all");
-                  if (viewMode === "matrix") setViewMode("grid");
-                }}
+                onClick={() => setActiveFilter("all")}
                 role="tab"
                 aria-selected={activeFilter === "all"}
               >
-                All Cards ({taxonomy.allCount})
+                All Deliverables ({project.sockets.length})
               </button>
 
               {taxonomy.hasMajorMinor && (
@@ -366,7 +486,10 @@ export function SocketGrid({ project }: { project: Project }) {
                   </button>
                   <button
                     className={`filter-pill ${activeFilter === "minor" ? "active" : ""}`}
-                    onClick={() => setActiveFilter("minor")}
+                    onClick={() => {
+                      setActiveFilter("minor");
+                      if (viewMode === "matrix") setViewMode("grid");
+                    }}
                     role="tab"
                     aria-selected={activeFilter === "minor"}
                   >
@@ -375,6 +498,7 @@ export function SocketGrid({ project }: { project: Project }) {
                 </>
               )}
 
+              {/* Render detected suits or custom tag categories */}
               {taxonomy.suits.map((suit) => (
                 <button
                   key={suit.id}
@@ -417,23 +541,43 @@ export function SocketGrid({ project }: { project: Project }) {
                 onClick={() => setViewMode("matrix")}
                 title={
                   taxonomy.matrix.isAvailable
-                    ? `Synchronized side-by-side comparison of ${taxonomy.matrix.subgroupCount} suits`
-                    : "Suit matrix requires 2 or more evenly divided subgroups"
+                    ? `Synchronized comparative table matrix (${taxonomy.matrix.subgroupCount} columns)`
+                    : "Table matrix"
                 }
               >
-                Suit Matrix ({taxonomy.matrix.subgroupCount || 4} Suits
-                Side-by-Side)
+                Table Matrix ({taxonomy.matrix.subgroupCount || 4} Cols)
+              </button>
+              <button
+                className="view-mode-btn matrix-config-toggle-btn"
+                onClick={() => setMatrixConfigOpen(true)}
+                title="Configure custom table columns, rows, and domain presets"
+              >
+                ⚙ Configure Table
               </button>
             </div>
           </div>
 
           <div className="board-main">
             <div className="grid-scroll">
-              {/* 1. SUIT MATRIX VIEW (Synchronized Counterparts Side-by-Side) */}
+              {/* 1. SUIT / COMPARATIVE TABLE MATRIX VIEW */}
               {viewMode === "matrix" && taxonomy.matrix.isAvailable ? (
                 <div className="matrix-view-wrapper" onKeyDown={onGridKeyDown}>
                   <div className="matrix-sticky-header-row">
-                    <div className="matrix-rank-corner-label">Rank / Order</div>
+                    <div className="matrix-rank-corner-label">
+                      <span>
+                        {taxonomy.matrix.activeConfig?.rows?.[0]
+                          ? "Stage / Rank"
+                          : "Rank / Order"}
+                      </span>
+                      <button
+                        type="button"
+                        className="matrix-inline-config-btn"
+                        onClick={() => setMatrixConfigOpen(true)}
+                        title="Configure Matrix Table Layout"
+                      >
+                        ⚙ Setup
+                      </button>
+                    </div>
                     {taxonomy.matrix.columnHeaders.map((hdr, i) => (
                       <div key={i} className="matrix-column-title">
                         {hdr}
@@ -515,8 +659,7 @@ export function SocketGrid({ project }: { project: Project }) {
                       <section key={suit.id} className="deck-category-section">
                         <div className="deck-section-divider">
                           <span className="deck-section-title">
-                            ✦ Minor Arcana — {suit.label} ({suit.count}{" "}
-                            Deliverables)
+                            ✦ {suit.label} ({suit.count} Deliverables)
                           </span>
                           <div className="deck-section-line" />
                         </div>
@@ -600,6 +743,15 @@ export function SocketGrid({ project }: { project: Project }) {
 
       {settingsOpen && (
         <ProjectSettingsModal onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {matrixConfigOpen && (
+        <MatrixConfigModal
+          isOpen={matrixConfigOpen}
+          onClose={() => setMatrixConfigOpen(false)}
+          project={project}
+          onSaveConfig={handleSaveMatrixConfig}
+        />
       )}
     </>
   );

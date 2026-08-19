@@ -11,6 +11,40 @@ export type MediaKind = "image" | "pdf" | "docx" | "text" | "other";
 export type SocketStatus =
   "not_started" | "in_progress" | "needs_review" | "done";
 
+export type MatrixLayoutMode =
+  "auto" | "dimensions" | "custom_grid" | "tag_group";
+
+export interface CustomMatrixColumn {
+  id: string;
+  label: string;
+  tagOrPrefix?: string;
+  notes?: string;
+}
+
+export interface CustomMatrixRow {
+  id: string;
+  label: string;
+  notes?: string;
+}
+
+export interface MatrixConfig {
+  mode?: MatrixLayoutMode;
+  preset?:
+    | "tarot"
+    | "playing_cards"
+    | "tcg_factions"
+    | "board_game"
+    | "design_tokens"
+    | "custom";
+  columnCount?: number;
+  rowCount?: number;
+  columns?: CustomMatrixColumn[];
+  rows?: CustomMatrixRow[];
+  tagKey?: string;
+  sliceMode?: "sequential" | "interleaved" | "by_tag";
+  updated_at?: string;
+}
+
 export interface ProjectMetadata {
   author?: string;
   studio?: string;
@@ -21,6 +55,7 @@ export interface ProjectMetadata {
   edition?: string;
   description?: string;
   planning_matrix?: PlanningMatrixData;
+  matrix_config?: MatrixConfig;
 }
 
 export interface SubgroupDimension {

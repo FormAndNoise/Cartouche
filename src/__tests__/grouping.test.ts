@@ -5,8 +5,9 @@ import {
   getSocketSubgroup,
   analyzeDeckTaxonomy,
   computeCounterpartMatrix,
+  MATRIX_PRESETS,
 } from "../lib/grouping";
-import type { Socket } from "../api/types";
+import type { MatrixConfig, Socket } from "../api/types";
 
 function makeSocket(id: string, pos: number, title: string, tags = ""): Socket {
   return {
@@ -100,14 +101,137 @@ describe("Card Grouping & Counterpart Matrix (lib/grouping.ts)", () => {
     expect(row13.cards[3]?.title).toBe("14 of pentacles");
   });
 
-  it("handles decks without even suits gracefully", () => {
+  it("supports user-configured custom matrix table with sequential chunks", () => {
+    // 12 game cards configured as 3 Factions × 4 Tiers
+    const sockets = Array.from({ length: 12 }, (_, i) =>
+      makeSocket(`s_${i}`, i, `Unit #${i + 1}`),
+    );
+
+    const customConfig: MatrixConfig = {
+      mode: "custom_grid",
+      columnCount: 3,
+      sliceMode: "sequential",
+      columns: [
+        { id: "c1", label: "Solar Empire" },
+        { id: "c2", label: "Lunar Syndicate" },
+        { id: "c3", label: "Star Nomads" },
+      ],
+      rows: [
+        { id: "r1", label: "Tier 1: Scout" },
+        { id: "r2", label: "Tier 2: Soldier" },
+        { id: "r3", label: "Tier 3: Knight" },
+        { id: "r4", label: "Tier 4: Titan" },
+      ],
+    };
+
+    const tax = analyzeDeckTaxonomy(sockets, customConfig);
+    expect(tax.matrix.isAvailable).toBe(true);
+    expect(tax.matrix.subgroupCount).toBe(3);
+    expect(tax.matrix.rows.length).toBe(4);
+    expect(tax.matrix.columnHeaders[0]).toContain("Solar Empire (4)");
+    expect(tax.matrix.columnHeaders[1]).toContain("Lunar Syndicate (4)");
+    expect(tax.matrix.columnHeaders[2]).toContain("Star Nomads (4)");
+
+    // First row checks
+    expect(tax.matrix.rows[0].rankLabel).toBe("Tier 1: Scout");
+    expect(tax.matrix.rows[0].cards[0]?.title).toBe("Unit #1");
+    expect(tax.matrix.rows[0].cards[1]?.title).toBe("Unit #5");
+    expect(tax.matrix.rows[0].cards[2]?.title).toBe("Unit #9");
+
+    // Last row checks
+    expect(tax.matrix.rows[3].rankLabel).toBe("Tier 4: Titan");
+    expect(tax.matrix.rows[3].cards[0]?.title).toBe("Unit #4");
+    expect(tax.matrix.rows[3].cards[1]?.title).toBe("Unit #8");
+    expect(tax.matrix.rows[3].cards[2]?.title).toBe("Unit #12");
+  });
+
+  it("supports user-configured matrix with interleaved distribution", () => {
+    const sockets = Array.from({ length: 6 }, (_, i) =>
+      makeSocket(`s_${i}`, i, `Item ${i + 1}`),
+    );
+
+    const customConfig: MatrixConfig = {
+      mode: "custom_grid",
+      columnCount: 2,
+      sliceMode: "interleaved",
+      columns: [
+        { id: "col_a", label: "Column A" },
+        { id: "col_b", label: "Column B" },
+      ],
+      rows: [
+        { id: "r1", label: "Row 1" },
+        { id: "r2", label: "Row 2" },
+        { id: "r3", label: "Row 3" },
+      ],
+    };
+
+    const tax = analyzeDeckTaxonomy(sockets, customConfig);
+    expect(tax.matrix.subgroupCount).toBe(2);
+    expect(tax.matrix.rows.length).toBe(3);
+
+    // Row 0 has Item 1 (Col A) and Item 2 (Col B)
+    expect(tax.matrix.rows[0].cards[0]?.title).toBe("Item 1");
+    expect(tax.matrix.rows[0].cards[1]?.title).toBe("Item 2");
+
+    // Row 1 has Item 3 (Col A) and Item 4 (Col B)
+    expect(tax.matrix.rows[1].cards[0]?.title).toBe("Item 3");
+    expect(tax.matrix.rows[1].cards[1]?.title).toBe("Item 4");
+  });
+
+  it("supports tag-based custom column matching", () => {
     const sockets = [
-      makeSocket("1", 0, "Card 1", "faction:alpha"),
-      makeSocket("2", 1, "Card 2", "faction:alpha"),
-      makeSocket("3", 2, "Card 3", "faction:beta"),
+      makeSocket("1", 0, "Fire Blast", "pyro, spell"),
+      makeSocket("2", 1, "Water Wall", "hydro, spell"),
+      makeSocket("3", 2, "Fire Golem", "pyro, unit"),
+      makeSocket("4", 3, "Water Sprite", "hydro, unit"),
+    ];
+
+    const customConfig: MatrixConfig = {
+      mode: "custom_grid",
+      sliceMode: "by_tag",
+      columns: [
+        { id: "pyro_col", label: "Pyro Faction", tagOrPrefix: "pyro" },
+        { id: "hydro_col", label: "Hydro Faction", tagOrPrefix: "hydro" },
+      ],
+      rows: [
+        { id: "r1", label: "Spell" },
+        { id: "r2", label: "Unit" },
+      ],
+    };
+
+    const tax = analyzeDeckTaxonomy(sockets, customConfig);
+    expect(tax.matrix.subgroupCount).toBe(2);
+    expect(tax.matrix.rows[0].cards[0]?.title).toBe("Fire Blast");
+    expect(tax.matrix.rows[0].cards[1]?.title).toBe("Water Wall");
+    expect(tax.matrix.rows[1].cards[0]?.title).toBe("Fire Golem");
+    expect(tax.matrix.rows[1].cards[1]?.title).toBe("Water Sprite");
+  });
+
+  it("provides rich domain presets", () => {
+    expect(MATRIX_PRESETS.length).toBeGreaterThanOrEqual(5);
+    const tcg = MATRIX_PRESETS.find((p) => p.id === "tcg_factions");
+    expect(tcg).toBeDefined();
+    expect(tcg?.columns.length).toBe(5);
+    expect(tcg?.rows.length).toBe(6);
+
+    const boardGame = MATRIX_PRESETS.find((p) => p.id === "board_game");
+    expect(boardGame).toBeDefined();
+    expect(boardGame?.columns.length).toBe(4);
+    expect(boardGame?.rows.length).toBe(6);
+  });
+
+  it("provides automatic best-fit matrix fallback when no custom config exists", () => {
+    const sockets = [
+      makeSocket("1", 0, "Card 1"),
+      makeSocket("2", 1, "Card 2"),
+      makeSocket("3", 2, "Card 3"),
+      makeSocket("4", 3, "Card 4"),
+      makeSocket("5", 4, "Card 5"),
     ];
 
     const matrix = computeCounterpartMatrix([], sockets);
-    expect(matrix.isAvailable).toBe(false);
+    expect(matrix.isAvailable).toBe(true);
+    expect(matrix.rows.length).toBeGreaterThan(0);
+    expect(matrix.columnHeaders.length).toBeGreaterThan(0);
   });
 });

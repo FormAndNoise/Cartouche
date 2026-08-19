@@ -1858,3 +1858,247 @@ details.extracted pre {
   color: var(--text-faint);
   font-style: italic;
 }
+
+/* ---------- Matrix Table Configuration Modal & Controls ---------- */
+.matrix-config-btn,
+.matrix-config-toggle-btn {
+  background: var(--bg-card) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-light, #6fa0be) !important;
+}
+.matrix-config-btn:hover,
+.matrix-config-toggle-btn:hover {
+  background: var(--accent) !important;
+  color: var(--accent-ink, #0b0b0b) !important;
+}
+
+.matrix-quick-config-btn,
+.matrix-inline-config-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--accent-light, #6fa0be);
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.matrix-quick-config-btn:hover,
+.matrix-inline-config-btn:hover {
+  background: var(--accent);
+  color: var(--accent-ink, #0b0b0b);
+}
+
+.matrix-config-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 680px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.matrix-config-intro {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.matrix-config-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.matrix-config-section h4 {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.matrix-preset-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.matrix-preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.1s ease;
+}
+.matrix-preset-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.matrix-preset-btn.active {
+  background: rgba(63, 110, 140, 0.18);
+  border-color: var(--accent);
+  color: var(--accent-light, #6fa0be);
+}
+.preset-subtext {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+}
+
+.slice-mode-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.slice-mode-options .radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.slice-mode-options code {
+  background: var(--bg-raised);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.add-item-btn {
+  font-size: 0.74rem;
+  padding: 3px 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--accent-light, #6fa0be);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.add-item-btn:hover {
+  background: var(--accent);
+  color: var(--accent-ink, #0b0b0b);
+}
+
+.matrix-columns-editor,
+.matrix-rows-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.matrix-col-item,
+.matrix-row-edit-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.col-idx-badge,
+.row-idx-badge {
+  font-size: 0.68rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-dim);
+  width: 50px;
+  flex: none;
+}
+.col-label-input,
+.row-label-input {
+  flex: 2;
+  font-size: 0.78rem;
+  padding: 5px 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+}
+.col-tag-input {
+  flex: 1;
+  font-size: 0.74rem;
+  padding: 5px 8px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 4px;
+}
+.remove-item-btn,
+.remove-dim-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 4px;
+}
+.remove-item-btn:hover,
+.remove-dim-btn:hover {
+  color: var(--danger, #e05252);
+}
+
+.matrix-config-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.action-right-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scratchpad-preset-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.preset-bar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  flex: none;
+}
+.preset-pill-btn {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.preset-pill-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent);
+}
+.dim-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

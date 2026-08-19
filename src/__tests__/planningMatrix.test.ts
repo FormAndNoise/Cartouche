@@ -6,6 +6,7 @@ import {
   generatePlanningCsv,
   generatePlanningMarkdownDossier,
   getOrInitPlanningMatrix,
+  PLANNING_DOMAIN_PRESETS,
   resolveSocketSymbolism,
   synthesizeTenantSymbolism,
 } from "../lib/planningMatrix";
@@ -110,9 +111,22 @@ describe("Bottom-to-Top Planning Scratchpad & Symbolism Matrix", () => {
   it("generates a rich markdown design dossier for the project", () => {
     const md = generatePlanningMarkdownDossier(mockProject);
     expect(md).toContain("# Conceptual Planning Scratchpad & Symbolism Matrix");
-    expect(md).toContain("## 1. Subgroup & Suit Dimensions");
+    expect(md).toContain("## 1. Subgroup & Category Dimensions");
     expect(md).toContain("## 2. Rank & Counterpart Dimensions");
     expect(md).toContain("## 3. Deliverable Socket Tenant Matrix Spreadsheet");
     expect(md).toContain("Ace of Wands");
+  });
+
+  it("provides comprehensive domain planning presets", () => {
+    expect(PLANNING_DOMAIN_PRESETS.length).toBeGreaterThanOrEqual(4);
+    const tcg = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "tcg_factions");
+    expect(tcg).toBeDefined();
+    expect(tcg?.subgroups.length).toBe(5);
+    expect(tcg?.ranks.length).toBe(5);
+
+    const bg = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "board_game");
+    expect(bg).toBeDefined();
+    expect(bg?.subgroups.length).toBe(4);
+    expect(bg?.ranks.length).toBe(6);
   });
 });
