@@ -9,6 +9,8 @@ import {
   PLANNING_DOMAIN_PRESETS,
   resolveSocketSymbolism,
   synthesizeTenantSymbolism,
+  TAROT_RANKS,
+  TAROT_SUBGROUPS,
 } from "../lib/planningMatrix";
 
 describe("Bottom-to-Top Planning Scratchpad & Symbolism Matrix", () => {
@@ -71,13 +73,29 @@ describe("Bottom-to-Top Planning Scratchpad & Symbolism Matrix", () => {
     sockets: mockSockets,
   };
 
-  it("initializes default subgroups and ranks", () => {
+  it("initializes default tarot subgroups and ranks cleanly", () => {
     const matrix = getOrInitPlanningMatrix(mockProject);
-    expect(matrix.subgroups.length).toBeGreaterThanOrEqual(5);
-    expect(matrix.ranks.length).toBeGreaterThanOrEqual(14);
+    expect(matrix.subgroups.length).toBe(5);
+    expect(matrix.ranks.length).toBe(14);
     expect(matrix.subgroups.find((s) => s.id === "wands")?.element).toContain(
       "Fire",
     );
+  });
+
+  it("preserves full Hermetic & RWS Tarot symbolism across all 5 suits and 14 ranks", () => {
+    expect(TAROT_SUBGROUPS.length).toBe(5);
+    expect(TAROT_RANKS.length).toBe(14);
+
+    const wands = TAROT_SUBGROUPS.find((s) => s.id === "wands")!;
+    expect(wands.palette).toContain("Crimson");
+    expect(wands.motifs).toContain("living staves");
+
+    const swords = TAROT_SUBGROUPS.find((s) => s.id === "swords")!;
+    expect(swords.element).toContain("Air");
+
+    const king = TAROT_RANKS[13];
+    expect(king.rankLabel).toContain("King");
+    expect(king.archetype).toContain("Sovereign Patriarch");
   });
 
   it("synthesizes tenant symbolism by intersecting subgroup and rank dimensions", () => {
@@ -117,16 +135,47 @@ describe("Bottom-to-Top Planning Scratchpad & Symbolism Matrix", () => {
     expect(md).toContain("Ace of Wands");
   });
 
-  it("provides comprehensive domain planning presets", () => {
-    expect(PLANNING_DOMAIN_PRESETS.length).toBeGreaterThanOrEqual(4);
+  it("provides comprehensive domain planning presets across varied creative use cases", () => {
+    expect(PLANNING_DOMAIN_PRESETS.length).toBeGreaterThanOrEqual(7);
+
+    // Tarot
+    const tarot = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "tarot");
+    expect(tarot).toBeDefined();
+    expect(tarot?.category).toBe("Tarot & Oracle");
+
+    // Playing Cards
+    const playingCards = PLANNING_DOMAIN_PRESETS.find(
+      (p) => p.id === "playing_cards",
+    );
+    expect(playingCards).toBeDefined();
+    expect(playingCards?.subgroups.length).toBe(4);
+    expect(playingCards?.ranks.length).toBe(13);
+
+    // TCG
     const tcg = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "tcg_factions");
     expect(tcg).toBeDefined();
     expect(tcg?.subgroups.length).toBe(5);
-    expect(tcg?.ranks.length).toBe(5);
+    expect(tcg?.ranks.length).toBe(6);
 
-    const bg = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "board_game");
-    expect(bg).toBeDefined();
-    expect(bg?.subgroups.length).toBe(4);
-    expect(bg?.ranks.length).toBe(6);
+    // Storyboard / Narrative Arc
+    const story = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "narrative_arc");
+    expect(story).toBeDefined();
+    expect(story?.category).toBe("Story & Art");
+    expect(story?.subgroups.length).toBe(4);
+    expect(story?.ranks.length).toBe(6);
+
+    // Character Sprites
+    const sprites = PLANNING_DOMAIN_PRESETS.find(
+      (p) => p.id === "character_sprites",
+    );
+    expect(sprites).toBeDefined();
+    expect(sprites?.subgroups.length).toBe(4);
+    expect(sprites?.ranks.length).toBe(6);
+
+    // Custom Blank Slate
+    const blank = PLANNING_DOMAIN_PRESETS.find((p) => p.id === "custom_blank");
+    expect(blank).toBeDefined();
+    expect(blank?.category).toBe("Custom");
+    expect(blank?.subgroups.length).toBe(4);
   });
 });

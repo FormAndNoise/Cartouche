@@ -127,10 +127,7 @@ export function MatrixConfigModal({
   if (!isOpen) return null;
 
   return (
-    <Modal
-      onClose={onClose}
-      title="⚙ Configure Comparative Matrix Table"
-    >
+    <Modal onClose={onClose} title="⚙ Configure Comparative Matrix Table">
       <div className="matrix-config-modal" data-testid="matrix-config-modal">
         <p className="matrix-config-intro">
           Customize how your {project.sockets.length} deliverable sockets are

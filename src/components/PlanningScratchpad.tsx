@@ -17,6 +17,7 @@ import {
   synthesizeTenantSymbolism,
 } from "../lib/planningMatrix";
 import { getSocketPrimaryGroup, getSocketSubgroup } from "../lib/grouping";
+import { PlanningPresetModal } from "./PlanningPresetModal";
 import { useBoard } from "../state/context";
 
 interface Props {
@@ -36,6 +37,7 @@ export function PlanningScratchpad({
   const [activeTab, setActiveTab] = useState<ScratchpadTab>("spreadsheet");
   const [filterGroup, setFilterGroup] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [presetModalOpen, setPresetModalOpen] = useState<boolean>(false);
   const [editingCell, setEditingCell] = useState<{
     socketId: string;
     field: keyof SocketTenantSymbolism | "notes";
@@ -60,10 +62,17 @@ export function PlanningScratchpad({
       subgroups: preset.subgroups.map((s) => ({ ...s })),
       ranks: preset.ranks.map((r) => ({ ...r })),
     });
-    board.pushToast(
-      "success",
-      `Loaded planning domain template: ${preset.name}`,
+    board.pushToast("success", `Loaded planning template: ${preset.name}`);
+  };
+
+  const handleStartBlankMatrix = async () => {
+    const blankPreset = PLANNING_DOMAIN_PRESETS.find(
+      (p) => p.id === "custom_blank",
     );
+    if (blankPreset) {
+      await handleApplyDomainPreset(blankPreset);
+      setActiveTab("subgroups");
+    }
   };
 
   const handleUpdateSubgroup = async (
@@ -76,14 +85,16 @@ export function PlanningScratchpad({
   };
 
   const handleAddSubgroup = async () => {
-    const newId = `group_${Date.now()}`;
+    const nextNum = matrix.subgroups.length + 1;
+    const newId = `dimension_${nextNum}`;
     const newSub: SubgroupDimension = {
       id: newId,
-      label: `New Dimension (${matrix.subgroups.length + 1})`,
-      element: "Custom Domain",
-      theme: "Theme notes...",
+      label: `Dimension ${nextNum}`,
+      element: "Custom Domain / Element",
+      theme: "Theme overview...",
       palette: "Palette notes...",
       motifs: "Key motifs...",
+      notes: "Artistic invariant...",
     };
     await saveMatrix({ ...matrix, subgroups: [...matrix.subgroups, newSub] });
   };
@@ -104,12 +115,13 @@ export function PlanningScratchpad({
   };
 
   const handleAddRank = async () => {
+    const nextNum = matrix.ranks.length + 1;
     const newRank: RankDimension = {
       rankIndex: matrix.ranks.length,
-      rankLabel: `Rank ${matrix.ranks.length + 1}`,
-      meaning: "Universal rank meaning...",
-      composition_rule: "Framing notes...",
-      archetype: "Archetype role...",
+      rankLabel: `Stage ${nextNum}`,
+      meaning: "Progression tier meaning...",
+      composition_rule: "Framing & composition rule...",
+      archetype: `Stage ${nextNum} Role`,
     };
     await saveMatrix({ ...matrix, ranks: [...matrix.ranks, newRank] });
   };
@@ -278,6 +290,13 @@ export function PlanningScratchpad({
 
         <div className="scratchpad-header-actions">
           <button
+            className="preset-modal-btn"
+            onClick={() => setPresetModalOpen(true)}
+            title="Choose a domain template or start from scratch with a custom matrix"
+          >
+            🔮 Templates & Custom Matrix…
+          </button>
+          <button
             onClick={handleAutoSynthesizeAll}
             title="Synthesize core meaning, motifs, and brief from Subgroups × Ranks"
           >
@@ -305,15 +324,30 @@ export function PlanningScratchpad({
       {/* Domain Preset Bar */}
       <div className="scratchpad-preset-bar">
         <span className="preset-bar-label">Domain Presets:</span>
-        {PLANNING_DOMAIN_PRESETS.map((preset) => (
+        {PLANNING_DOMAIN_PRESETS.slice(0, 5).map((preset) => (
           <button
             key={preset.id}
             className="preset-pill-btn"
             onClick={() => handleApplyDomainPreset(preset)}
+            title={preset.description}
           >
             {preset.name}
           </button>
         ))}
+        <button
+          className="preset-pill-btn custom-blank-btn"
+          onClick={handleStartBlankMatrix}
+          title="Start with a clean blank custom matrix and fill in all your own details"
+        >
+          ✏ Custom Blank Matrix
+        </button>
+        <button
+          className="preset-pill-btn browse-all-btn"
+          onClick={() => setPresetModalOpen(true)}
+          title="Browse all domain templates"
+        >
+          ⋯ More Templates
+        </button>
       </div>
 
       {/* Navigation Sub-Tabs */}
@@ -334,7 +368,7 @@ export function PlanningScratchpad({
           className={`scratchpad-tab ${activeTab === "ranks" ? "active" : ""}`}
           onClick={() => setActiveTab("ranks")}
         >
-          📐 Rank & Counterpart Dimensions ({matrix.ranks.length})
+          📐 Rank & Progression Dimensions ({matrix.ranks.length})
         </button>
         <button
           className={`scratchpad-tab ${activeTab === "synthesizer" ? "active" : ""}`}
@@ -632,8 +666,9 @@ export function PlanningScratchpad({
           <div className="dimension-intro">
             <h3>Subgroup & Category Dimensions (Vertical Slices)</h3>
             <p>
-              Define the overarching elemental forces, categories, visual
-              motifs, and palette rules that define each suit or card group.
+              Define the overarching forces, categories, visual motifs, and
+              palette rules that define each card group. You can edit existing
+              fields, add custom dimensions, or start from scratch.
             </p>
           </div>
 
@@ -644,6 +679,7 @@ export function PlanningScratchpad({
                   <input
                     className="dimension-label-input"
                     value={sub.label}
+                    placeholder="Dimension Name (e.g. Wands, Faction, Act I)"
                     onChange={(e) =>
                       handleUpdateSubgroup(idx, { label: e.target.value })
                     }
@@ -664,7 +700,7 @@ export function PlanningScratchpad({
 
                 <div className="dimension-card-body">
                   <label className="dim-field">
-                    <span>Element / Domain:</span>
+                    <span>Element / Domain / Type:</span>
                     <input
                       value={sub.element || ""}
                       placeholder="e.g. Fire / Willpower or Tier Category"
@@ -679,7 +715,7 @@ export function PlanningScratchpad({
                     <textarea
                       rows={2}
                       value={sub.theme || ""}
-                      placeholder="Theme overview..."
+                      placeholder="Theme overview, narrative focus, core conflict..."
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { theme: e.target.value })
                       }
@@ -690,7 +726,7 @@ export function PlanningScratchpad({
                     <span>Dominant Palette & Atmosphere:</span>
                     <input
                       value={sub.palette || ""}
-                      placeholder="e.g. Crimson, Amber, Warm Gold"
+                      placeholder="e.g. Crimson, Amber, Warm Gold, Obsidian"
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { palette: e.target.value })
                       }
@@ -702,7 +738,7 @@ export function PlanningScratchpad({
                     <textarea
                       rows={2}
                       value={sub.motifs || ""}
-                      placeholder="Key symbols, objects, textures..."
+                      placeholder="Key symbols, textures, emblems, focal items..."
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { motifs: e.target.value })
                       }
@@ -710,10 +746,10 @@ export function PlanningScratchpad({
                   </label>
 
                   <label className="dim-field">
-                    <span>Artistic Invariants / Lore:</span>
+                    <span>Artistic Invariants / Lore Notes:</span>
                     <input
                       value={sub.notes || ""}
-                      placeholder="e.g. Invariants across cards..."
+                      placeholder="e.g. Mandatory visual rules across cards..."
                       onChange={(e) =>
                         handleUpdateSubgroup(idx, { notes: e.target.value })
                       }
@@ -724,9 +760,18 @@ export function PlanningScratchpad({
             ))}
           </div>
 
-          <button className="add-dimension-btn" onClick={handleAddSubgroup}>
-            + Add Subgroup Dimension
-          </button>
+          <div className="dimension-footer-actions">
+            <button className="add-dimension-btn" onClick={handleAddSubgroup}>
+              + Add Subgroup Dimension
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={handleStartBlankMatrix}
+              title="Reset all dimensions to clean blank custom inputs"
+            >
+              ✏ Clean Slate Custom Matrix
+            </button>
+          </div>
         </section>
       )}
 
@@ -734,10 +779,10 @@ export function PlanningScratchpad({
       {activeTab === "ranks" && (
         <section className="scratchpad-content dimensions-view">
           <div className="dimension-intro">
-            <h3>Rank & Counterpart Dimensions (Horizontal Progression)</h3>
+            <h3>Rank & Progression Dimensions (Horizontal Progression)</h3>
             <p>
-              Define what each rank (Step 1..N, Tier 1..N, Stage 1..N) means
-              across all categories.
+              Define what each rank, tier, stage, or pose means across all
+              categories. You can edit any field or add custom tiers.
             </p>
           </div>
 
@@ -761,6 +806,7 @@ export function PlanningScratchpad({
                       <input
                         className="rank-input"
                         value={r.rankLabel}
+                        placeholder="e.g. Ace, Tier 1, Stage 1"
                         onChange={(e) =>
                           handleUpdateRank(idx, { rankLabel: e.target.value })
                         }
@@ -771,6 +817,7 @@ export function PlanningScratchpad({
                         className="rank-textarea"
                         rows={2}
                         value={r.meaning || ""}
+                        placeholder="Progression stage meaning..."
                         onChange={(e) =>
                           handleUpdateRank(idx, { meaning: e.target.value })
                         }
@@ -780,7 +827,7 @@ export function PlanningScratchpad({
                       <input
                         className="rank-input"
                         value={r.archetype || ""}
-                        placeholder="e.g. The Initiator / Tank"
+                        placeholder="e.g. The Initiator / Vanguard"
                         onChange={(e) =>
                           handleUpdateRank(idx, { archetype: e.target.value })
                         }
@@ -791,7 +838,7 @@ export function PlanningScratchpad({
                         className="rank-textarea"
                         rows={2}
                         value={r.composition_rule || ""}
-                        placeholder="Framing rules..."
+                        placeholder="Framing rules and focal guidelines..."
                         onChange={(e) =>
                           handleUpdateRank(idx, {
                             composition_rule: e.target.value,
@@ -816,9 +863,11 @@ export function PlanningScratchpad({
             </table>
           </div>
 
-          <button className="add-dimension-btn" onClick={handleAddRank}>
-            + Add Rank Dimension
-          </button>
+          <div className="dimension-footer-actions">
+            <button className="add-dimension-btn" onClick={handleAddRank}>
+              + Add Progression Rank
+            </button>
+          </div>
         </section>
       )}
 
@@ -829,8 +878,8 @@ export function PlanningScratchpad({
             <h3>Bottom-to-Top Dimensional Synthesis Engine</h3>
             <p>
               Visual intersection of vertical (Subgroup) and horizontal (Rank)
-              dimensions. Select any coordinate to preview how the two
-              dimensions synthesize into the socket tenant brief.
+              dimensions. Preview how any two coordinates synthesize into a
+              deliverable tenant brief.
             </p>
           </div>
 
@@ -875,6 +924,15 @@ export function PlanningScratchpad({
             ))}
           </div>
         </section>
+      )}
+
+      {/* Domain Preset Selection Modal */}
+      {presetModalOpen && (
+        <PlanningPresetModal
+          isOpen={presetModalOpen}
+          onClose={() => setPresetModalOpen(false)}
+          onSelectPreset={handleApplyDomainPreset}
+        />
       )}
     </div>
   );

@@ -2102,3 +2102,208 @@ details.extracted pre {
   align-items: center;
   gap: 6px;
 }
+
+/* ---------- Planning Presets Modal & Template Selector ---------- */
+.preset-modal-btn {
+  background: var(--bg-card) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent-light, #6fa0be) !important;
+}
+.preset-modal-btn:hover {
+  background: var(--accent) !important;
+  color: var(--accent-ink, #0b0b0b) !important;
+}
+
+.custom-blank-btn {
+  border-color: var(--accent) !important;
+  color: var(--accent-light, #6fa0be) !important;
+}
+.browse-all-btn {
+  background: var(--bg-hover) !important;
+}
+
+.planning-preset-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 780px;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.planning-preset-intro {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.preset-category-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.preset-cat-pill {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.preset-cat-pill:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.preset-cat-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink, #0b0b0b);
+  font-weight: 600;
+}
+
+.preset-cards-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.preset-select-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.preset-select-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-raised);
+}
+.preset-select-card.selected {
+  border-color: var(--accent);
+  background: rgba(63, 110, 140, 0.12);
+}
+
+.preset-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+.preset-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.preset-name-block h4 {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+.preset-cat-badge {
+  font-size: 0.64rem;
+  color: var(--accent-light, #6fa0be);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.preset-dim-count {
+  font-size: 0.68rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-dim);
+  background: var(--bg-raised);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.preset-desc {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  line-height: 1.35;
+}
+
+.preset-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.preview-label {
+  font-size: 0.65rem;
+  color: var(--text-faint);
+}
+.preview-tag {
+  font-size: 0.65rem;
+  background: var(--bg-raised);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--text);
+}
+.preview-more {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+}
+
+.preset-detail-preview {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.preview-section h5 {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.preview-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.detail-pill {
+  font-size: 0.72rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text);
+}
+.detail-pill.rank-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+}
+.elem-sub {
+  color: var(--text-dim);
+  font-size: 0.66rem;
+}
+
+.planning-preset-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}

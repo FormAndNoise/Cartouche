@@ -1,9 +1,9 @@
 /**
  * Bottom-to-Top Dimensional Synthesis & Symbolism Scratchpad Engine.
  *
- * Enables visual artists and deck creators to build dimensional notes:
- * 1. Subgroup Dimensions (e.g. Suits: Wands/Cups/Swords/Pentacles/Major or Custom Factions/Categories)
- * 2. Rank Dimensions (e.g. Ranks: Ace through King / Steps 1..N / Tiers / Stages)
+ * Enables visual artists and creators across multiple domains to build dimensional notes:
+ * 1. Subgroup Dimensions (e.g. Suits: Wands/Cups/Swords/Pentacles/Major or Factions, Story Acts, Component Types)
+ * 2. Rank Dimensions (e.g. Ranks: Ace..King, Progression Stages, Rarity Tiers, Pose States)
  * 3. Synthesis Matrix: Generates intersecting symbolism, visual motifs, color palettes,
  *    and composition briefs for each socket tenant in a spreadsheet table.
  */
@@ -17,7 +17,10 @@ import type {
 } from "../api/types";
 import { getSocketPrimaryGroup, getSocketSubgroup } from "./grouping";
 
-export const DEFAULT_SUBGROUPS: SubgroupDimension[] = [
+/**
+ * 1. STANDARD TAROT ARCHETYPE SYSTEM (Preserved Full RWS / Hermetic Symbolism)
+ */
+export const TAROT_SUBGROUPS: SubgroupDimension[] = [
   {
     id: "wands",
     label: "Wands / Rods (Fire)",
@@ -25,8 +28,9 @@ export const DEFAULT_SUBGROUPS: SubgroupDimension[] = [
     theme: "Creative Inspiration, Vital Action, Passion, Spiritual Drive",
     palette: "Crimson, Amber, Burnt Sienna, Solar Gold, Saffron",
     motifs:
-      "Sprouting living staves, roaring flames, salamander, lions, desert mesas",
-    notes: "Express kinetic energy and spontaneous ignition.",
+      "Sprouting living staves, roaring flames, salamanders, lions, desert mesas",
+    notes:
+      "Express kinetic energy, vertical impulse, and spontaneous ignition.",
   },
   {
     id: "cups",
@@ -71,7 +75,7 @@ export const DEFAULT_SUBGROUPS: SubgroupDimension[] = [
   },
 ];
 
-export const DEFAULT_RANKS: RankDimension[] = [
+export const TAROT_RANKS: RankDimension[] = [
   {
     rankIndex: 0,
     rankLabel: "Ace (Seed / 01)",
@@ -199,15 +203,29 @@ export const DEFAULT_RANKS: RankDimension[] = [
   },
 ];
 
+// Alias for backwards compatibility
+export const DEFAULT_SUBGROUPS = TAROT_SUBGROUPS;
+export const DEFAULT_RANKS = TAROT_RANKS;
+
 export interface PlanningDomainPreset {
   id:
     | "tarot"
     | "playing_cards"
     | "tcg_factions"
     | "board_game"
+    | "narrative_arc"
+    | "character_sprites"
     | "design_tokens"
-    | "custom";
+    | "custom_blank";
   name: string;
+  category:
+    | "Tarot & Oracle"
+    | "Card Games"
+    | "Board Games"
+    | "Story & Art"
+    | "Design & UI"
+    | "Custom";
+  description: string;
   subgroups: SubgroupDimension[];
   ranks: RankDimension[];
 }
@@ -216,12 +234,80 @@ export const PLANNING_DOMAIN_PRESETS: PlanningDomainPreset[] = [
   {
     id: "tarot",
     name: "Tarot Archetypes (4 Suits + Major)",
-    subgroups: [...DEFAULT_SUBGROUPS],
-    ranks: [...DEFAULT_RANKS],
+    category: "Tarot & Oracle",
+    description:
+      "Standard 78-card Hermetic & RWS symbolism across Fire, Water, Air, Earth, and Quintessence with 14 canonical ranks.",
+    subgroups: [...TAROT_SUBGROUPS],
+    ranks: [...TAROT_RANKS],
+  },
+  {
+    id: "playing_cards",
+    name: "Standard Playing Cards (52 Cards)",
+    category: "Card Games",
+    description:
+      "4 French suits (Hearts, Diamonds, Clubs, Spades) across 13 numerical and court ranks (Ace through King).",
+    subgroups: [
+      {
+        id: "hearts",
+        label: "Hearts ♥ (Emotion / Soul)",
+        element: "Water / Vital Force",
+        theme: "Courage, love, joy, warmth, kinship, inner sanctuary",
+        palette: "Crimson Red, Rose Pink, Cream, Gold Accents",
+        motifs: "Embossed heart filigree, roses, stained glass, hearth light",
+      },
+      {
+        id: "diamonds",
+        label: "Diamonds ♦ (Wealth / Light)",
+        element: "Earth / Crystal Radiance",
+        theme: "Wealth, clarity, commerce, crystalline order, brilliance",
+        palette: "Brilliant Amber, Topaz, Champagne Gold, Pure White",
+        motifs: "Cut gemstones, vault keys, gilded scales, chandeliers",
+      },
+      {
+        id: "clubs",
+        label: "Clubs ♣ (Will / Vitality)",
+        element: "Fire / Nature's Growth",
+        theme: "Endurance, labor, primal growth, adventure, luck",
+        palette: "Emerald, Forest Green, Bronze, Warm Umber",
+        motifs: "Three-leaf clover crests, oak leaves, hunting horns, staves",
+      },
+      {
+        id: "spades",
+        label: "Spades ♠ (Wisdom / Destiny)",
+        element: "Air / Fate & Intellect",
+        theme: "Sovereignty, strategic discernment, solemn truth, destiny",
+        palette: "Midnight Black, Slate Grey, Polished Steel, Ice Blue",
+        motifs: "Pikes, heraldic shields, hourglasses, ravens, iron crowns",
+      },
+    ],
+    ranks: [
+      "Ace (The Premier)",
+      "Two (Duality)",
+      "Three (Expansion)",
+      "Four (Foundation)",
+      "Five (Turning Point)",
+      "Six (Equilibrium)",
+      "Seven (Strategy)",
+      "Eight (Rhythm)",
+      "Nine (Apex)",
+      "Ten (Completeness)",
+      "Jack (The Knight/Courier)",
+      "Queen (The Receptive Sovereign)",
+      "King (The Ruling Monarch)",
+    ].map((label, idx) => ({
+      rankIndex: idx,
+      rankLabel: label,
+      meaning: `Universal rank ${idx + 1} card power and thematic weight.`,
+      composition_rule: `Classic playing card framing with symmetrical pips and ornamental corners.`,
+      archetype: idx >= 10 ? "Court Figure" : `Pip Tier ${idx + 1}`,
+    })),
   },
   {
     id: "tcg_factions",
     name: "TCG / CCG Factions & Tiers",
+    category: "Card Games",
+    description:
+      "5 Element Factions (Light, Fire, Water, Nature, Shadow) across 6 Rarity & Power Tiers (Initiate to Titan).",
     subgroups: [
       {
         id: "solar",
@@ -315,11 +401,22 @@ export const PLANNING_DOMAIN_PRESETS: PlanningDomainPreset[] = [
           "Panoramic spectacle with reality-warping atmospheric scale.",
         archetype: "The Sovereign Avatar",
       },
+      {
+        rankIndex: 5,
+        rankLabel: "Tier 6: Titan / Raid Boss",
+        meaning: "Endgame world boss or colossal game-ending entity.",
+        composition_rule:
+          "Towering monolithic scale breaking out of the card frame.",
+        archetype: "The World Ender / Colossus",
+      },
     ],
   },
   {
     id: "board_game",
     name: "Board Game Components (4 Types × 6 Levels)",
+    category: "Board Games",
+    description:
+      "Resources, Infrastructure, Tactics, and Hazards across 6 Escalating Progression Stages.",
     subgroups: [
       {
         id: "resources",
@@ -363,8 +460,203 @@ export const PLANNING_DOMAIN_PRESETS: PlanningDomainPreset[] = [
     })),
   },
   {
+    id: "narrative_arc",
+    name: "Narrative Arc & Storyboard Beats",
+    category: "Story & Art",
+    description:
+      "4 Story Acts (Departure, Initiation, Climax, Return) across 6 Core Character Roles.",
+    subgroups: [
+      {
+        id: "act1",
+        label: "Act I: Departure & Call",
+        element: "The Known World",
+        theme:
+          "Status quo, the inciting incident, refusal, crossing the threshold",
+        palette: "Sepia, Morning Mist, Gentle Amber, Familiar Green",
+        motifs:
+          "Homestead gates, ancient letters, departure crossroads, hearths",
+      },
+      {
+        id: "act2",
+        label: "Act II: The Descent & Trials",
+        element: "The Unfamiliar Wilds",
+        theme: "Tests, allies, enemies, navigating the belly of the whale",
+        palette: "Fog Charcoal, Poison Green, Twilight Purple, Rust",
+        motifs:
+          "Labyrinths, broken bridges, campfire whispers, subterranean ruins",
+      },
+      {
+        id: "act3",
+        label: "Act III: The Climax & Ordeal",
+        element: "The Center of the Fire",
+        theme:
+          "Confronting the core fear, sacrifice, revelation, seizing the boon",
+        palette: "Blinding Crimson, Solar Flare, Obsidian, Lightning White",
+        motifs: "Eclipse, shattered mirrors, divine relic, battlefield apex",
+      },
+      {
+        id: "act4",
+        label: "Act IV: Return & Transfiguration",
+        element: "The Transformed World",
+        theme:
+          "The road back, resurrection, master of two worlds, freedom to live",
+        palette: "Golden Dawn, Opal, Sky Blue, Radiant Emerald",
+        motifs: "Banners of renewal, ancient crown laid down, open horizons",
+      },
+    ],
+    ranks: [
+      {
+        rankIndex: 0,
+        rankLabel: "Role: The Protagonist / Seeker",
+        meaning:
+          "Central bearer of the arc whose internal choice shapes the narrative trajectory.",
+        composition_rule:
+          "Close up emotional focal framing emphasizing gaze and decisive intent.",
+        archetype: "The Seeker",
+      },
+      {
+        rankIndex: 1,
+        rankLabel: "Role: The Mentor / Guide",
+        meaning: "Imparting wisdom, talismans, and unavoidable hard truths.",
+        composition_rule:
+          "Side profile or illuminated guide figure holding a light source.",
+        archetype: "The Elder / Mentor",
+      },
+      {
+        rankIndex: 2,
+        rankLabel: "Role: The Shadow / Antagonist",
+        meaning:
+          "External mirror of the protagonist's repressed truth or opposing philosophy.",
+        composition_rule:
+          "Imposing silhouette or stark chiaroscuro shadow across the frame.",
+        archetype: "The Adversary",
+      },
+      {
+        rankIndex: 3,
+        rankLabel: "Role: The Ally / Companion",
+        meaning:
+          "Loyalty, comic relief, grounded perspective, or mutual sacrifice.",
+        composition_rule:
+          "Shared two-shot composition standing shoulder-to-shoulder.",
+        archetype: "The Loyal Companion",
+      },
+      {
+        rankIndex: 4,
+        rankLabel: "Role: The Threshold Guardian",
+        meaning:
+          "The test of resolve standing between the known and unknown worlds.",
+        composition_rule:
+          "Massive looming obstacle or gateway blocking direct passage.",
+        archetype: "The Gatekeeper",
+      },
+      {
+        rankIndex: 5,
+        rankLabel: "Role: The World / Environment",
+        meaning:
+          "The setting as an active character exerting pressure on all actors.",
+        composition_rule: "Panoramic wide environmental matte shot.",
+        archetype: "The Living World",
+      },
+    ],
+  },
+  {
+    id: "character_sprites",
+    name: "Character Concept & Action Pose Sheet",
+    category: "Story & Art",
+    description: "4 Archetype Classes across 6 Pose & Action Animation States.",
+    subgroups: [
+      {
+        id: "warrior",
+        label: "Warrior / Vanguard Class",
+        element: "Heavy Plate & Steel",
+        theme:
+          "Brute resilience, stance control, sweeping cleaves, shield bashes",
+        palette: "Iron Grey, Blood Orange, Burnished Brass, Dark Leather",
+        motifs: "Greatswords, tower shields, scarred plate, heavy greaves",
+      },
+      {
+        id: "mage",
+        label: "Mage / Spellweaver Class",
+        element: "Arcane & Elements",
+        theme:
+          "Channeling, mana overload, floating sigils, spatial teleportation",
+        palette: "Arcane Violet, Cobalt Blue, Luminescent Cyan, Starlight",
+        motifs: "Rune tomes, floating staves, glowing glyph circles, robes",
+      },
+      {
+        id: "rogue",
+        label: "Rogue / Infiltrator Class",
+        element: "Shadow & Poison",
+        theme: "Agility, critical precision, stealth vanishes, dual daggers",
+        palette: "Midnight Charcoal, Poison Jade, Muted Bronze, Smoke",
+        motifs: "Throwing knives, grappling hooks, hooded cloaks, smoke vials",
+      },
+      {
+        id: "cleric",
+        label: "Cleric / Radiant Healer",
+        element: "Sacred Light & Wards",
+        theme: "Blessings, resurrective bursts, protective barriers, smite",
+        palette: "Ivory White, Dawn Gold, Warm Topaz, Celestial Sky",
+        motifs: "Sacred censers, winged maces, halo circlets, prayer seals",
+      },
+    ],
+    ranks: [
+      {
+        rankIndex: 0,
+        rankLabel: "Pose 1: Idle & Combat Stance",
+        meaning:
+          "Relaxed yet ready silhouette showing weapon balance and posture.",
+        composition_rule: "Full body 3/4 hero view in rest posture.",
+        archetype: "Resting Silhouette",
+      },
+      {
+        rankIndex: 1,
+        rankLabel: "Pose 2: Kinetic Run / Dash",
+        meaning: "Dynamic forward velocity and weight distribution in motion.",
+        composition_rule:
+          "Strong diagonal stride line with cloth/trail motion blur.",
+        archetype: "Kinetic Motion",
+      },
+      {
+        rankIndex: 2,
+        rankLabel: "Pose 3: Primary Attack / Strike",
+        meaning: "Moment of maximum impact and weapon apex follow-through.",
+        composition_rule:
+          "Apex arc trail or muzzle flash with extreme dynamic foreshortening.",
+        archetype: "Impact Apex",
+      },
+      {
+        rankIndex: 3,
+        rankLabel: "Pose 4: Signature Skill / Cast",
+        meaning: "Ultimate ability charging or spell activation burst.",
+        composition_rule:
+          "VFX burst radiating outward with glowing rim lighting.",
+        archetype: "Power Burst",
+      },
+      {
+        rankIndex: 4,
+        rankLabel: "Pose 5: Damage / Stun / Defeat",
+        meaning: "Reaction to impact, staggering recoil or defensive parry.",
+        composition_rule:
+          "Off-balance backward recoil with dynamic particle debris.",
+        archetype: "Recoil Reaction",
+      },
+      {
+        rankIndex: 5,
+        rankLabel: "Pose 6: Victory / Ascendant Pose",
+        meaning: "Post-battle celebration, weapon flourish, or ascended form.",
+        composition_rule:
+          "Elevated angle with triumphant lighting and clean silhouette.",
+        archetype: "Victory Flourish",
+      },
+    ],
+  },
+  {
     id: "design_tokens",
     name: "Design System & Asset Kit (6 Types × 4 States)",
+    category: "Design & UI",
+    description:
+      "UI Components (Icons, Badges, Cards, Inputs, Modals, Buttons) across 4 Interactive States.",
     subgroups: [
       {
         id: "icons",
@@ -427,10 +719,81 @@ export const PLANNING_DOMAIN_PRESETS: PlanningDomainPreset[] = [
       },
     ],
   },
+  {
+    id: "custom_blank",
+    name: "Custom Blank Matrix (Clean Slate)",
+    category: "Custom",
+    description:
+      "Start completely fresh with clean, customizable dimensions ready for your custom labels, themes, and briefs.",
+    subgroups: [
+      {
+        id: "dim_1",
+        label: "Dimension 1",
+        element: "Element / Domain",
+        theme: "Core theme notes...",
+        palette: "Palette notes...",
+        motifs: "Key motifs...",
+      },
+      {
+        id: "dim_2",
+        label: "Dimension 2",
+        element: "Element / Domain",
+        theme: "Core theme notes...",
+        palette: "Palette notes...",
+        motifs: "Key motifs...",
+      },
+      {
+        id: "dim_3",
+        label: "Dimension 3",
+        element: "Element / Domain",
+        theme: "Core theme notes...",
+        palette: "Palette notes...",
+        motifs: "Key motifs...",
+      },
+      {
+        id: "dim_4",
+        label: "Dimension 4",
+        element: "Element / Domain",
+        theme: "Core theme notes...",
+        palette: "Palette notes...",
+        motifs: "Key motifs...",
+      },
+    ],
+    ranks: [
+      {
+        rankIndex: 0,
+        rankLabel: "Stage 1",
+        meaning: "Initial stage meaning...",
+        archetype: "Stage 1 Role",
+        composition_rule: "Framing rule...",
+      },
+      {
+        rankIndex: 1,
+        rankLabel: "Stage 2",
+        meaning: "Intermediate stage meaning...",
+        archetype: "Stage 2 Role",
+        composition_rule: "Framing rule...",
+      },
+      {
+        rankIndex: 2,
+        rankLabel: "Stage 3",
+        meaning: "Advanced stage meaning...",
+        archetype: "Stage 3 Role",
+        composition_rule: "Framing rule...",
+      },
+      {
+        rankIndex: 3,
+        rankLabel: "Stage 4",
+        meaning: "Culmination stage meaning...",
+        archetype: "Stage 4 Role",
+        composition_rule: "Framing rule...",
+      },
+    ],
+  },
 ];
 
 /**
- * Initializes or resolves planning matrix data for a deck.
+ * Initializes or resolves planning matrix data for a project.
  */
 export function getOrInitPlanningMatrix(project: Project): PlanningMatrixData {
   const existing = project.metadata?.planning_matrix;
@@ -438,9 +801,10 @@ export function getOrInitPlanningMatrix(project: Project): PlanningMatrixData {
     return existing;
   }
 
+  // Default to rich Tarot presets
   return {
-    subgroups: [...DEFAULT_SUBGROUPS],
-    ranks: [...DEFAULT_RANKS],
+    subgroups: [...TAROT_SUBGROUPS],
+    ranks: [...TAROT_RANKS],
     updated_at: new Date().toISOString(),
   };
 }
