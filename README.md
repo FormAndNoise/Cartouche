@@ -77,42 +77,71 @@ Cartouche is built on a clean separation between the user interface and native s
 ## Getting Started
 
 ### Prerequisites
-- **Node.js**: `>= 20.x`
-- **pnpm**: `>= 9.x`
-- **Rust**: Stable toolchain (`1.77+`)
+- **Node.js**: `>= 20.x` (<https://nodejs.org>)
+- **pnpm**: `>= 9.x` (`npm install -g pnpm`)
+- **Rust**: Stable toolchain (`1.77+`, <https://rustup.rs>)
 - **Tauri CLI 2.x**: `cargo install tauri-cli --version "^2" --locked`
+- **C++ Build Tools**: MSVC Build Tools 2019+ (Windows) or GCC / build-essential (Linux)
 
-### Installation & Development
+### Repository Structure
+
+Cartouche uses a git worktree monorepo layout. The primary development tree containing the full frontend, backend, configuration, and test suites is located in `.worktrees/t_99bad544_new/`.
 
 ```bash
-# Clone the repository
+# Clone the repository and enter the primary worktree
 git clone https://github.com/FormAndNoise/cartouche.git
-cd cartouche
-
-# Install dependencies (frontend + backend crates)
-make install
-
-# Launch full desktop app with Vite hot-reload
-make dev-tauri
-
-# Launch Vite dev server only (runs against MockBackendClient)
-make dev
+cd cartouche/.worktrees/t_99bad544_new
 ```
 
-### Testing & Quality Assurance
+### Installation & Development (Direct CLI)
+
+These commands work directly across all shells (PowerShell, Command Prompt, bash, zsh):
 
 ```bash
-# Run all frontend and backend tests
-make test
+# 1. Install dependencies
+pnpm install
+cd src-tauri && cargo fetch && cd ..
 
-# Run frontend tests (Vitest + React Testing Library)
-make test-frontend
+# 2. Run development mode
+pnpm dev             # Vite dev server (runs against MockBackendClient in browser)
+pnpm dev:tauri       # Full desktop application with hot-reload (Tauri + Vite)
+```
 
-# Run backend tests (Cargo test)
-make test-backend
+### Testing & Quality Assurance (Direct CLI)
 
-# Comprehensive CI validation (install + lint + test + build)
-make check
+```bash
+# Frontend test suite (Vitest + React Testing Library)
+pnpm test
+
+# Backend test suite (Cargo integration and unit tests)
+cd src-tauri && cargo test && cd ..
+
+# Lint and format checks
+pnpm lint
+pnpm format:check
+cd src-tauri && cargo clippy --all-targets -- -D warnings && cd ..
+
+# Production builds
+pnpm build                               # Frontend bundle
+cd src-tauri && cargo build --release    # Native release binary
+pnpm tauri build                         # Packaged desktop installer/app
+```
+
+### Convenience Makefile (Unix / Git Bash / MSYS2)
+
+A `Makefile` is available at both repository root and inside the worktree:
+
+```bash
+make install         # Install frontend (pnpm) + fetch backend crates
+make dev             # Vite dev server only (frontend + mock backend)
+make dev-tauri       # Full Tauri desktop app with hot reload
+make test            # Run all frontend and backend tests
+make test-frontend   # Vitest run
+make test-backend    # Cargo test run
+make lint            # ESLint + cargo clippy
+make format          # Prettier + cargo fmt
+make build           # Frontend build + cargo release build
+make check           # Full CI check (install + lint + format-check + test + build)
 ```
 
 ---
