@@ -10,6 +10,7 @@ import type { CsvPreview, JobStatus } from "../api/types";
 import { errorMessage } from "../state/helpers";
 import { useBoard } from "../state/context";
 import { Modal } from "./Modal";
+import { generateSampleCsvTemplate, downloadTextFile } from "../lib/licensing";
 
 export function CsvImportModal({ onClose }: { onClose: () => void }) {
   const board = useBoard();
@@ -96,6 +97,33 @@ export function CsvImportModal({ onClose }: { onClose: () => void }) {
 
       {!jobId && (
         <>
+          <div className="csv-template-box">
+            <div className="csv-template-text">
+              <strong>Deck Manifest Schema & Rights Columns</strong>
+              <p>
+                Supported columns: <code>title</code>, <code>status</code>,{" "}
+                <code>medium</code>, <code>tags</code>, <code>due_date</code>,{" "}
+                <code>author</code>, <code>license</code>, <code>notes</code>.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn secondary"
+              style={{ fontSize: "0.82rem", whiteSpace: "nowrap" }}
+              onClick={() => {
+                const tpl = generateSampleCsvTemplate();
+                downloadTextFile(
+                  "cartouche_deck_template.csv",
+                  tpl,
+                  "text/csv;charset=utf-8",
+                );
+                board.pushToast("info", "Downloaded sample CSV template");
+              }}
+            >
+              Download Sample CSV
+            </button>
+          </div>
+
           <label className="field">
             <span>Select CSV file</span>
             <input

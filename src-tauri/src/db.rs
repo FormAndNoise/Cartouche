@@ -32,6 +32,10 @@ pub fn open(root: &Path) -> Result<Connection, AppError> {
 /// this is the authoritative schema.
 pub fn init_schema(conn: &Connection) -> Result<(), AppError> {
     conn.execute_batch(MIGRATION_001_UP)?;
+    let _ = conn.execute(
+        "ALTER TABLE projects ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}'",
+        [],
+    );
     Ok(())
 }
 
@@ -96,11 +100,11 @@ pub fn read_socket(conn: &Connection, id: i64) -> Result<Socket, AppError> {
 
 /// Read a project and its ordered sockets from the database.
 pub fn read_project(conn: &Connection, root: &Path) -> Result<Project, AppError> {
-    let (name, columns): (String, i64) = conn
+    let (name, columns, metadata_json): (String, i64, String) = conn
         .query_row(
-            "SELECT name, grid_columns FROM projects WHERE id = 1",
+            "SELECT name, grid_columns, COALESCE(metadata_json, '{}') FROM projects WHERE id = 1",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )
         .map_err(|_| AppError::ProjectCorrupt("missing project row".into()))?;
 
@@ -163,6 +167,7 @@ pub fn read_project(conn: &Connection, root: &Path) -> Result<Project, AppError>
         name,
         path: root.to_path_buf(),
         grid_columns: columns,
+        metadata_json,
         sockets,
     })
 }

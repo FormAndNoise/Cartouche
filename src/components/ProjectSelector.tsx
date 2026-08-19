@@ -6,6 +6,7 @@
  */
 import { useState, type FormEvent } from "react";
 import { getMockClient, isMockMode } from "../api/index";
+import { isTauriAvailable } from "../api/tauriClient";
 import { useBoard } from "../state/context";
 import { errorMessage, getRecentProjects } from "../state/helpers";
 
@@ -144,6 +145,56 @@ export function ProjectSelector() {
             </button>
           </div>
         </form>
+
+        <div style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            className="secondary"
+            style={{ width: "100%" }}
+            disabled={busy}
+            onClick={async () => {
+              setLocalError(null);
+              try {
+                if (isTauriAvailable()) {
+                  const { open } = await import("@tauri-apps/plugin-dialog");
+                  const selected = await open({
+                    multiple: false,
+                    filters: [
+                      {
+                        name: "Cartouche Deck Package (*.crtch)",
+                        extensions: ["crtch"],
+                      },
+                    ],
+                  });
+                  if (!selected || typeof selected !== "string") return;
+                  setBusy(true);
+                  const dest = selected.replace(/\.crtch$/i, "");
+                  await board.client.importProject({
+                    package_path: selected,
+                    destination_path: dest,
+                  });
+                  await board.openProject(dest);
+                } else {
+                  // Browser demo mode
+                  setBusy(true);
+                  const dest =
+                    "C:/Users/artist/Projects/imported-cartouche-deck";
+                  await board.client.importProject({
+                    package_path: "demo.crtch",
+                    destination_path: dest,
+                  });
+                  await board.openProject(dest);
+                }
+              } catch (e) {
+                setLocalError(errorMessage(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            📦 Open .crtch Deck Bundle…
+          </button>
+        </div>
 
         {recents.length > 0 && (
           <>

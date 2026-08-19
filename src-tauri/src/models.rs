@@ -36,6 +36,7 @@ pub struct Project {
     pub name: String,
     pub path: PathBuf,
     pub grid_columns: i64,
+    pub metadata_json: String,
     pub sockets: Vec<Socket>,
 }
 

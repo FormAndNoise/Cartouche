@@ -24,10 +24,13 @@ import {
   type DroppedFilesResult,
   type JobStatus,
   type MediaKind,
+  type OpenExternalEditorResult,
   type Project,
+  type ProjectMetadata,
   type RepairScanResult,
   type Socket,
   type SocketMetadata,
+  type SyncExternalEditsResult,
   type Work,
 } from "./types";
 
@@ -134,6 +137,7 @@ interface ProjectState {
   name: string;
   path: string;
   grid_columns: number;
+  metadata?: ProjectMetadata;
   sockets: SocketState[];
 }
 
@@ -149,12 +153,78 @@ export interface MockClientOptions {
   jobTickMs?: number;
 }
 
+function escapeCsvValue(v: string): string {
+  if (
+    v.includes(",") ||
+    v.includes('"') ||
+    v.includes("\n") ||
+    v.includes("\r")
+  ) {
+    return `"${v.replace(/"/g, '""')}"`;
+  }
+  return v;
+}
+
 const STATUS_VALUES = new Set([
   "not_started",
   "in_progress",
   "needs_review",
   "done",
 ]);
+
+function parseStatusValue(input: string): SocketMetadata["status"] | null {
+  const clean = input
+    .trim()
+    .toLowerCase()
+    .replace(/[-_\s]+/g, "");
+  switch (clean) {
+    case "notstarted":
+    case "todo":
+    case "backlog":
+    case "queued":
+    case "unstarted":
+    case "open":
+    case "draft":
+    case "new":
+    case "pending":
+    case "0":
+    case "":
+      return "not_started";
+    case "inprogress":
+    case "wip":
+    case "doing":
+    case "working":
+    case "started":
+    case "active":
+    case "development":
+    case "1":
+      return "in_progress";
+    case "needsreview":
+    case "review":
+    case "inreview":
+    case "underreview":
+    case "feedback":
+    case "qa":
+    case "audit":
+    case "check":
+    case "testing":
+    case "2":
+      return "needs_review";
+    case "done":
+    case "complete":
+    case "completed":
+    case "finished":
+    case "ready":
+    case "shipped":
+    case "final":
+    case "closed":
+    case "passed":
+    case "3":
+      return "done";
+    default:
+      return null;
+  }
+}
 
 export class MockBackendClient implements BackendClient {
   private projects = new Map<string, ProjectState>();
@@ -201,6 +271,7 @@ export class MockBackendClient implements BackendClient {
       name: p.name,
       path: p.path,
       grid_columns: p.grid_columns,
+      metadata: p.metadata,
       sockets: p.sockets.map((s) => ({
         ...s,
         works: s.works.map((w) => {
@@ -278,6 +349,7 @@ export class MockBackendClient implements BackendClient {
     project_path: string;
     name?: string;
     grid_columns?: number;
+    metadata?: ProjectMetadata;
   }): Promise<Project> {
     return this.ipc(() => {
       const p = this.getOrThrow(req.project_path);
@@ -301,6 +373,9 @@ export class MockBackendClient implements BackendClient {
         if (req.name.trim() === "")
           throw err("INVALID_NAME", "Project name must not be empty");
         p.name = req.name.trim();
+      }
+      if (req.metadata !== undefined) {
+        p.metadata = { ...p.metadata, ...req.metadata };
       }
       return this.toProject(p);
     });
@@ -427,18 +502,39 @@ export class MockBackendClient implements BackendClient {
         });
       }
     }
-    const kind = mediaKindForPath(sourcePath);
+    const filename =
+      (blob as File)?.name || sourcePath.split(/[\\/]/).pop() || "Untitled";
+    let kind = mediaKindForPath(filename);
+    if (kind === "other" && blob?.type) {
+      if (blob.type.startsWith("image/")) kind = "image";
+      else if (blob.type === "application/pdf") kind = "pdf";
+      else if (
+        blob.type.includes("wordprocessingml") ||
+        blob.type.includes("docx")
+      )
+        kind = "docx";
+      else if (blob.type.startsWith("text/")) kind = "text";
+    }
+
+    const isImg =
+      kind === "image" ||
+      IMAGE_EXTS.has(ext(sourcePath)) ||
+      (blob?.type ? blob.type.startsWith("image/") : false);
+
+    if (isImg) kind = "image";
+
+    const previewUri = isImg ? (blob ? sourcePath : sourcePath) : null;
     const work: WorkState = {
       id: this.nextId("w"),
       socket_id: s.id,
-      title: sourcePath.split(/[\\/]/).pop() ?? sourcePath,
+      title: filename,
       media_kind: kind,
-      mime_type: blob?.type || null,
+      mime_type: blob?.type || (isImg ? "image/jpeg" : null),
       byte_size: bytes.length,
       sha256: hash,
-      preview_uri: null,
-      preview_state: kind === "image" ? "pending" : "failed",
-      extracted_text_state: TEXT_EXTRACT_EXTS.has(ext(sourcePath))
+      preview_uri: previewUri,
+      preview_state: isImg ? "ready" : "failed",
+      extracted_text_state: TEXT_EXTRACT_EXTS.has(ext(filename))
         ? "pending"
         : "unsupported",
       metadata_json: "{}",
@@ -446,12 +542,6 @@ export class MockBackendClient implements BackendClient {
     };
     s.works.push(work);
 
-    if (kind === "image") {
-      setTimeout(() => {
-        work.preview_state = "ready";
-        work.preview_uri = blob ? sourcePath : null;
-      }, this.jobTickMs * 2);
-    }
     if (work.extracted_text_state === "pending") {
       setTimeout(async () => {
         try {
@@ -548,6 +638,137 @@ export class MockBackendClient implements BackendClient {
     });
   }
 
+  moveWork(req: {
+    project_path: string;
+    source_socket_id: string;
+    target_socket_id: string;
+    work_id: string;
+  }): Promise<Project> {
+    return this.ipc(() => {
+      const p = this.getOrThrow(req.project_path);
+      const source = this.socketOrThrow(p, req.source_socket_id);
+      if (source.locked)
+        throw err("LOCKED", "Source socket is locked", {
+          socket_id: source.id,
+        });
+      const target = this.socketOrThrow(p, req.target_socket_id);
+      if (target.locked)
+        throw err("LOCKED", "Target socket is locked", {
+          socket_id: target.id,
+        });
+
+      const wIdx = source.works.findIndex((x) => x.id === req.work_id);
+      if (wIdx < 0)
+        throw err(
+          "NOT_FOUND",
+          `Work ${req.work_id} not found in source socket`,
+          {
+            work_id: req.work_id,
+          },
+        );
+
+      const [work] = source.works.splice(wIdx, 1);
+      target.works.push(work);
+
+      if (source.selected_work_id === req.work_id) {
+        source.selected_work_id = null;
+      }
+      if (target.selected_work_id === null) {
+        target.selected_work_id = work.id;
+      }
+
+      return this.toProject(p);
+    });
+  }
+
+  openInExternalEditor(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<OpenExternalEditorResult> {
+    return this.ipc(() => {
+      const p = this.getOrThrow(req.project_path);
+      const s = this.socketOrThrow(p, req.socket_id);
+      const w = s.works.find((x) => x.id === req.work_id);
+      if (!w)
+        throw err("NOT_FOUND", `Work ${req.work_id} not found`, {
+          work_id: req.work_id,
+        });
+
+      const now = new Date().toISOString();
+      const ledger = s.metadata.provenance_ledger
+        ? [...s.metadata.provenance_ledger]
+        : [];
+      ledger.push({
+        id: `prov-${ledger.length + 1}`,
+        timestamp: now,
+        event: "EXTERNAL_EDIT_OPENED",
+        work_id: w.id,
+        asset_filename: w.title,
+        sha256_hash: w.sha256 || "mock-hash",
+        byte_size: w.byte_size,
+        notes: "File opened in external image editor",
+      });
+      s.metadata.provenance_ledger = ledger;
+
+      return {
+        path: `/mock/path/.tarot/assets/${w.id}_${w.title}`,
+        work_id: w.id,
+        original_sha256: w.sha256 || "mock-hash",
+        message:
+          "Opened in external editor. Save your changes and click 'Sync External Edits' to commit into the .crtch bundle.",
+      };
+    });
+  }
+
+  syncExternalEdits(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<SyncExternalEditsResult> {
+    return this.ipc(() => {
+      const p = this.getOrThrow(req.project_path);
+      const s = this.socketOrThrow(p, req.socket_id);
+      const w = s.works.find((x) => x.id === req.work_id);
+      if (!w)
+        throw err("NOT_FOUND", `Work ${req.work_id} not found`, {
+          work_id: req.work_id,
+        });
+
+      const oldSha = w.sha256 || "mock-hash-v1";
+      const newSha = `mock-sha256-mod-${Date.now().toString(16)}`;
+      w.sha256 = newSha;
+      w.byte_size = (w.byte_size || 1024) + 128;
+
+      const now = new Date().toISOString();
+      const ledger = s.metadata.provenance_ledger
+        ? [...s.metadata.provenance_ledger]
+        : [];
+      ledger.push({
+        id: `prov-${ledger.length + 1}`,
+        timestamp: now,
+        event: "EXTERNAL_EDIT_COMMITTED",
+        work_id: w.id,
+        asset_filename: w.title,
+        previous_sha256: oldSha,
+        sha256_hash: newSha,
+        byte_size: w.byte_size,
+        byte_size_delta: 128,
+        notes: "External image editor modifications committed to .crtch bundle",
+      });
+      s.metadata.provenance_ledger = ledger;
+
+      return {
+        modified: true,
+        socket: this.toSocket(s),
+        old_sha256: oldSha,
+        new_sha256: newSha,
+        message:
+          "External edits successfully synced. Cryptographic SHA-256 hash recorded in forensic ledger.",
+      };
+    });
+  }
+
   refreshExtractedText(req: {
     project_path: string;
     socket_id: string;
@@ -635,17 +856,29 @@ export class MockBackendClient implements BackendClient {
       let cursor = 0;
 
       const applyRow = (rowIndex: number, row: string[]): boolean => {
-        let target: SocketState | undefined;
+        let target: SocketState;
         if (req.mode === "update") {
-          target = p.sockets[rowIndex];
-          if (!target) {
-            warnings.push({
-              row: rowIndex + 1,
-              reason: "Row exceeds socket count (socket count is fixed)",
-              code: "OUT_OF_RANGE",
-            });
-            return false;
+          if (rowIndex >= p.sockets.length) {
+            const newSocket: SocketState = {
+              id: String(++this.idCounter),
+              position: p.sockets.length,
+              title: "",
+              notes: "",
+              locked: false,
+              selected_work_id: null,
+              works: [],
+              metadata: {
+                status: "not_started",
+                medium: "",
+                tags: "",
+                due_date: null,
+                author_override: "",
+                license_override: "",
+              },
+            };
+            p.sockets.push(newSocket);
           }
+          target = p.sockets[rowIndex];
           if (target.locked) {
             warnings.push({
               row: rowIndex + 1,
@@ -668,15 +901,27 @@ export class MockBackendClient implements BackendClient {
             }
             cursor++;
           }
-          target = p.sockets[cursor];
-          if (!target) {
-            warnings.push({
-              row: rowIndex + 1,
-              reason: "No empty socket left to append into",
-              code: "OUT_OF_RANGE",
-            });
-            return false;
+          if (cursor >= p.sockets.length) {
+            const newSocket: SocketState = {
+              id: String(++this.idCounter),
+              position: p.sockets.length,
+              title: "",
+              notes: "",
+              locked: false,
+              selected_work_id: null,
+              works: [],
+              metadata: {
+                status: "not_started",
+                medium: "",
+                tags: "",
+                due_date: null,
+                author_override: "",
+                license_override: "",
+              },
+            };
+            p.sockets.push(newSocket);
           }
+          target = p.sockets[cursor];
         }
         const title = (row[titleIdx] ?? "").trim();
         if (title === "") {
@@ -689,17 +934,18 @@ export class MockBackendClient implements BackendClient {
         }
         const meta: SocketMetadata = { ...target.metadata };
         if (statusIdx >= 0) {
-          const v = (row[statusIdx] ?? "").trim();
-          if (v !== "") {
-            if (!STATUS_VALUES.has(v)) {
+          const raw = (row[statusIdx] ?? "").trim();
+          if (raw !== "") {
+            const canonical = parseStatusValue(raw);
+            if (!canonical) {
               warnings.push({
                 row: rowIndex + 1,
-                reason: `Invalid status '${v}' — row skipped`,
+                reason: `Invalid status '${raw}' — row skipped`,
                 code: "ROW_VALIDATION_ERROR",
               });
               return false;
             }
-            meta.status = v as SocketMetadata["status"];
+            meta.status = canonical;
           }
         }
         if (mediumIdx >= 0) meta.medium = (row[mediumIdx] ?? "").trim();
@@ -759,6 +1005,25 @@ export class MockBackendClient implements BackendClient {
     });
   }
 
+  exportCsv(projectPath: string): Promise<string> {
+    return this.ipc(() => {
+      const p = this.getOrThrow(projectPath);
+      let csv = "title,status,medium,tags,due_date,author,license,notes\n";
+      for (const s of p.sockets) {
+        const title = escapeCsvValue(s.title);
+        const status = escapeCsvValue(s.metadata.status);
+        const medium = escapeCsvValue(s.metadata.medium);
+        const tags = escapeCsvValue(s.metadata.tags);
+        const dueDate = escapeCsvValue(s.metadata.due_date ?? "");
+        const author = escapeCsvValue(s.metadata.author_override ?? "");
+        const license = escapeCsvValue(s.metadata.license_override ?? "");
+        const notes = escapeCsvValue(s.notes);
+        csv += `${title},${status},${medium},${tags},${dueDate},${author},${license},${notes}\n`;
+      }
+      return csv;
+    });
+  }
+
   exportProject(req: {
     project_path: string;
     destination_path: string;
@@ -771,6 +1036,24 @@ export class MockBackendClient implements BackendClient {
         path: req.destination_path,
         manifest_sha256: "mock-manifest-hash",
       };
+    });
+  }
+
+  importProject(req: {
+    package_path: string;
+    destination_path: string;
+  }): Promise<Project> {
+    return this.ipc(() => {
+      const name =
+        req.package_path
+          .split(/[\\/]/)
+          .pop()
+          ?.replace(/\.(crtch|tarot|zip)$/, "") || "Imported Deck";
+      return this.createProject({
+        name,
+        socket_count: 12,
+        project_path: req.destination_path,
+      });
     });
   }
 

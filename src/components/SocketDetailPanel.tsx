@@ -19,6 +19,7 @@ import {
 } from "../api/types";
 import { useBoard, type AttachableFile } from "../state/context";
 import { Modal } from "./Modal";
+import { LICENSE_PRESETS } from "../lib/licensing";
 
 function DebouncedField({
   value,
@@ -121,6 +122,64 @@ export function SocketDetailPanel({
     }
   };
 
+  const onBrowseClick = async () => {
+    if (socket.locked) {
+      board.pushToast(
+        "error",
+        `[LOCKED] Socket is locked — unlock it to attach files.`,
+      );
+      return;
+    }
+    try {
+      const w =
+        typeof window !== "undefined"
+          ? (window as unknown as { __TAURI_INTERNALS__?: unknown })
+          : undefined;
+      if (w?.__TAURI_INTERNALS__) {
+        const { open } = await import("@tauri-apps/plugin-dialog");
+        const selected = await open({
+          multiple: true,
+          filters: [
+            {
+              name: "Media and Documents",
+              extensions: [
+                "png",
+                "jpg",
+                "jpeg",
+                "webp",
+                "gif",
+                "bmp",
+                "tiff",
+                "svg",
+                "pdf",
+                "docx",
+                "txt",
+                "md",
+                "csv",
+                "json",
+              ],
+            },
+          ],
+        });
+        if (selected) {
+          const paths = Array.isArray(selected) ? selected : [selected];
+          if (paths.length > 0) {
+            const files: AttachableFile[] = paths.map((p) => ({
+              name: p.split(/[\\/]/).pop() || p,
+              blob: new Blob([]),
+              path: p,
+            }));
+            await board.attachFiles(socket.id, files);
+            return;
+          }
+        }
+      }
+    } catch {
+      /* fallback to standard file input */
+    }
+    fileInputRef.current?.click();
+  };
+
   const onBrowse = async (list: FileList | null) => {
     if (!list || list.length === 0) return;
     if (socket.locked) {
@@ -133,9 +192,32 @@ export function SocketDetailPanel({
     const files: AttachableFile[] = Array.from(list).map((f) => ({
       name: f.name,
       blob: f,
+      path: (f as unknown as { path?: string }).path || undefined,
     }));
     await board.attachFiles(socket.id, files);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handlePanelDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (socket.locked) {
+      board.pushToast(
+        "error",
+        `[LOCKED] Socket is locked — unlock it to attach files.`,
+      );
+      return;
+    }
+    const files: AttachableFile[] = Array.from(e.dataTransfer.files).map(
+      (f) => ({
+        name: f.name,
+        blob: f,
+        path: (f as unknown as { path?: string }).path || undefined,
+      }),
+    );
+    if (files.length > 0) {
+      await board.attachFiles(socket.id, files);
+    }
   };
 
   const removeWork = async (workId: string, force = false) => {
@@ -171,6 +253,8 @@ export function SocketDetailPanel({
       tabIndex={-1}
       role="dialog"
       aria-label={`Socket ${socket.position + 1} details`}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handlePanelDrop}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -295,6 +379,132 @@ export function SocketDetailPanel({
             }}
           />
         </label>
+        <div className="field">
+          <div className="field-header-row">
+            <span>Artist / Creator (Card Override)</span>
+            {metaDraft.author_override?.trim() && (
+              <button
+                type="button"
+                className="btn-micro-link"
+                disabled={socket.locked}
+                onClick={() => {
+                  setMetaDraft({ ...metaDraft, author_override: "" });
+                  commitMeta({ ...metaDraft, author_override: "" });
+                }}
+              >
+                Reset to Deck Author
+              </button>
+            )}
+          </div>
+          <input
+            value={metaDraft.author_override ?? ""}
+            disabled={socket.locked}
+            aria-label="Artist override"
+            placeholder={
+              board.project?.metadata?.author
+                ? `Inherited: ${board.project.metadata.author}`
+                : "e.g. Guest Illustrator"
+            }
+            onChange={(e) =>
+              setMetaDraft({ ...metaDraft, author_override: e.target.value })
+            }
+            onBlur={(e) =>
+              e.target.value !== (socket.metadata.author_override ?? "") &&
+              commitMeta({ ...metaDraft, author_override: e.target.value })
+            }
+          />
+        </div>
+
+        <div className="field">
+          <div className="field-header-row">
+            <span>License (Card Override)</span>
+            {metaDraft.license_override?.trim() && (
+              <button
+                type="button"
+                className="btn-micro-link"
+                disabled={socket.locked}
+                onClick={() => {
+                  setMetaDraft({ ...metaDraft, license_override: "" });
+                  commitMeta({ ...metaDraft, license_override: "" });
+                }}
+              >
+                Reset to Deck License
+              </button>
+            )}
+          </div>
+          <div className="license-input-group">
+            <select
+              aria-label="License Preset for Card"
+              disabled={socket.locked}
+              value={
+                LICENSE_PRESETS.some(
+                  (p) =>
+                    p.label === metaDraft.license_override ||
+                    p.spdxOrPlusCode === metaDraft.license_override,
+                )
+                  ? metaDraft.license_override
+                  : "custom"
+              }
+              onChange={(e) => {
+                if (e.target.value !== "custom") {
+                  setMetaDraft({
+                    ...metaDraft,
+                    license_override: e.target.value,
+                  });
+                  commitMeta({
+                    ...metaDraft,
+                    license_override: e.target.value,
+                  });
+                }
+              }}
+            >
+              <option value="custom">Preset or Custom…</option>
+              <optgroup label="Commercial & Publishing">
+                <option value="All Rights Reserved">All Rights Reserved</option>
+                <option value="Commercial Print Deck — Exclusive 1st Edition">
+                  Commercial Print Deck — Exclusive 1st Edition
+                </option>
+                <option value="Commercial Print & Digital — Non-Exclusive">
+                  Commercial Print & Digital — Non-Exclusive
+                </option>
+                <option value="Work for Hire / Full Rights Buyout">
+                  Work for Hire / Full Rights Buyout
+                </option>
+              </optgroup>
+              <optgroup label="PLUS Universal Codes (IPTC / ISO 19566-5)">
+                <option value="PLUS-LIC-DECK-EXCL-1ST">
+                  PLUS: Card Deck (Exclusive 1st)
+                </option>
+                <option value="PLUS-LIC-DECK-NONEXCL">
+                  PLUS: Card Deck (Non-Exclusive)
+                </option>
+              </optgroup>
+              <optgroup label="Creative Commons">
+                <option value="CC-BY-4.0">CC BY 4.0</option>
+                <option value="CC-BY-NC-4.0">CC BY-NC 4.0</option>
+                <option value="CC-BY-NC-SA-4.0">CC BY-NC-SA 4.0</option>
+                <option value="CC0-1.0">CC0 1.0 (Public Domain)</option>
+              </optgroup>
+            </select>
+            <input
+              value={metaDraft.license_override ?? ""}
+              disabled={socket.locked}
+              aria-label="License override"
+              placeholder={
+                board.project?.metadata?.license
+                  ? `Inherited: ${board.project.metadata.license}`
+                  : "e.g. CC-BY-NC 4.0"
+              }
+              onChange={(e) =>
+                setMetaDraft({ ...metaDraft, license_override: e.target.value })
+              }
+              onBlur={(e) =>
+                e.target.value !== (socket.metadata.license_override ?? "") &&
+                commitMeta({ ...metaDraft, license_override: e.target.value })
+              }
+            />
+          </div>
+        </div>
       </section>
 
       <section>
@@ -308,10 +518,7 @@ export function SocketDetailPanel({
             onChange={(e) => onBrowse(e.target.files)}
             aria-label="Choose files to attach"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={socket.locked}
-          >
+          <button onClick={onBrowseClick} disabled={socket.locked}>
             Browse files…
           </button>
         </div>
@@ -330,7 +537,7 @@ export function SocketDetailPanel({
                   className={`work-item ${isWinner ? "winner" : ""}`}
                 >
                   <div className="work-thumb">
-                    {w.preview_state === "ready" && w.preview_uri ? (
+                    {w.preview_uri ? (
                       <img src={w.preview_uri} alt={w.title} />
                     ) : w.preview_state === "pending" ? (
                       <span
@@ -376,6 +583,20 @@ export function SocketDetailPanel({
                         </button>
                       )}
                       <button
+                        onClick={() =>
+                          board.openInExternalEditor(socket.id, w.id)
+                        }
+                        title="Open file in OS default editor (Photoshop, Affinity, GIMP, Paint...)"
+                      >
+                        🖌 Edit in External App…
+                      </button>
+                      <button
+                        onClick={() => board.syncExternalEdits(socket.id, w.id)}
+                        title="Detect file edits on disk and commit cryptographic SHA-256 state into forensic ledger"
+                      >
+                        🔄 Sync Changes
+                      </button>
+                      <button
                         className="danger"
                         onClick={() => attemptRemove(w.id)}
                         disabled={socket.locked}
@@ -393,6 +614,77 @@ export function SocketDetailPanel({
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      {/* Forensic Provenance & Legal Chain of Custody */}
+      <section className="provenance-section">
+        <h3>Forensic Provenance & Legal Chain of Custody</h3>
+        <p className="provenance-intro">
+          Cryptographically hashed iteration history for copyright registration
+          and legal provenance defense.
+        </p>
+
+        {socket.metadata.provenance_ledger &&
+        socket.metadata.provenance_ledger.length > 0 ? (
+          <div className="provenance-timeline">
+            {socket.metadata.provenance_ledger.map((entry, idx) => (
+              <div key={entry.id || idx} className="provenance-entry">
+                <div className="provenance-entry-header">
+                  <span className="provenance-event-badge">
+                    {entry.event.replace(/_/g, " ")}
+                  </span>
+                  <span className="provenance-time">
+                    {entry.timestamp.replace("T", " ").replace("Z", " UTC")}
+                  </span>
+                </div>
+                <div className="provenance-entry-body">
+                  <div className="provenance-hash-row">
+                    <span className="provenance-hash-label">SHA-256:</span>
+                    <code className="provenance-hash" title={entry.sha256_hash}>
+                      {entry.sha256_hash}
+                    </code>
+                  </div>
+                  {entry.previous_sha256 && (
+                    <div className="provenance-hash-row faint">
+                      <span className="provenance-hash-label">Prior Hash:</span>
+                      <code
+                        className="provenance-hash"
+                        title={entry.previous_sha256}
+                      >
+                        {entry.previous_sha256}
+                      </code>
+                    </div>
+                  )}
+                  <div className="provenance-details">
+                    <span>File: {entry.asset_filename}</span>
+                    <span>Size: {(entry.byte_size / 1024).toFixed(1)} KB</span>
+                    {entry.byte_size_delta !== undefined && (
+                      <span className="delta">
+                        Δ{" "}
+                        {entry.byte_size_delta >= 0
+                          ? `+${entry.byte_size_delta}`
+                          : entry.byte_size_delta}{" "}
+                        B
+                      </span>
+                    )}
+                  </div>
+                  {entry.notes && (
+                    <p className="provenance-notes">{entry.notes}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="provenance-empty">
+            <span>⚖ No external edit sessions recorded yet.</span>
+            <p>
+              When you open an image in an external editor (Photoshop, Affinity,
+              GIMP) and save changes, Cartouche automatically commits a
+              cryptographic SHA-256 state stamp to the .crtch bundle.
+            </p>
           </div>
         )}
       </section>

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS projects (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     name TEXT NOT NULL,
     grid_columns INTEGER NOT NULL DEFAULT 3 CHECK (grid_columns BETWEEN 1 AND 4),
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     schema_version INTEGER NOT NULL
 );
 

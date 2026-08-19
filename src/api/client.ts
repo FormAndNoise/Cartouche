@@ -18,9 +18,12 @@ import type {
   CsvPreview,
   DroppedFilesResult,
   JobStatus,
+  OpenExternalEditorResult,
   Project,
+  ProjectMetadata,
   RepairScanResult,
   Socket,
+  SyncExternalEditsResult,
   UpdateSocketRequest,
 } from "./types";
 
@@ -32,6 +35,7 @@ export interface BackendClient {
     project_path: string;
     name?: string;
     grid_columns?: number;
+    metadata?: ProjectMetadata;
   }): Promise<Project>;
 
   // Sockets
@@ -73,8 +77,24 @@ export interface BackendClient {
     work_id: string;
     force?: boolean;
   }): Promise<Socket>;
+  moveWork(req: {
+    project_path: string;
+    source_socket_id: string;
+    target_socket_id: string;
+    work_id: string;
+  }): Promise<Project>;
+  openInExternalEditor(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<OpenExternalEditorResult>;
+  syncExternalEdits(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<SyncExternalEditsResult>;
 
-  // CSV import (background job)
+  // CSV import / export
   previewCsv(req: {
     project_path: string;
     csv_text: string;
@@ -84,6 +104,7 @@ export interface BackendClient {
     csv_text: string;
     mode: "append" | "update";
   }): Promise<{ job_id: string; rows_total: number }>;
+  exportCsv(projectPath: string): Promise<string>;
   getJob(req: { project_path: string; job_id: string }): Promise<JobStatus>;
 
   // Works extras
@@ -93,10 +114,14 @@ export interface BackendClient {
     work_id: string;
   }): Promise<Socket>;
 
-  // Maintenance
+  // Maintenance & packages (.crtch)
   exportProject(req: {
     project_path: string;
     destination_path: string;
   }): Promise<{ path: string; manifest_sha256: string }>;
+  importProject(req: {
+    package_path: string;
+    destination_path: string;
+  }): Promise<Project>;
   repairScan(req: { project_path: string }): Promise<RepairScanResult>;
 }

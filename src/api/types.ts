@@ -11,16 +11,110 @@ export type MediaKind = "image" | "pdf" | "docx" | "text" | "other";
 export type SocketStatus =
   "not_started" | "in_progress" | "needs_review" | "done";
 
+export interface ProjectMetadata {
+  author?: string;
+  studio?: string;
+  copyright?: string;
+  license?: string;
+  ai_policy?: string;
+  trademark?: string;
+  edition?: string;
+  description?: string;
+  planning_matrix?: PlanningMatrixData;
+}
+
+export interface SubgroupDimension {
+  id: string; // e.g. "wands", "cups", "swords", "pentacles", "major"
+  label: string;
+  element?: string;
+  theme?: string;
+  palette?: string;
+  motifs?: string;
+  notes?: string;
+}
+
+export interface RankDimension {
+  rankIndex: number;
+  rankLabel: string;
+  meaning?: string;
+  composition_rule?: string;
+  archetype?: string;
+}
+
+export interface SocketTenantSymbolism {
+  core_meaning?: string;
+  visual_motifs?: string;
+  color_palette?: string;
+  composition_brief?: string;
+  elemental_attribution?: string;
+  custom_attributes?: Record<string, string>;
+}
+
+export interface PlanningMatrixData {
+  subgroups: SubgroupDimension[];
+  ranks: RankDimension[];
+  columns?: { key: string; label: string }[];
+  updated_at?: string;
+}
+
+export function emptyProjectMetadata(): ProjectMetadata {
+  return {
+    author: "",
+    studio: "",
+    copyright: "",
+    license: "",
+    ai_policy: "",
+    trademark: "",
+    edition: "",
+    description: "",
+    planning_matrix: {
+      subgroups: [],
+      ranks: [],
+    },
+  };
+}
+
+export interface ProvenanceAuditEntry {
+  id: string;
+  timestamp: string;
+  event: string;
+  work_id?: string;
+  asset_filename: string;
+  previous_sha256?: string;
+  sha256_hash: string;
+  byte_size: number;
+  byte_size_delta?: number;
+  notes?: string;
+}
+
 /**
- * Fixed metadata schema (REQUIREMENTS.md §6.3).
- * The editor renders exactly these fields; `metadata_json` in the DB
- * supports arbitrary keys for future extension.
+ * Socket metadata schema.
+ * Supports lifecycle status, medium, tags, due_date, rights overrides, forensic provenance, and symbolism matrix.
  */
 export interface SocketMetadata {
   status: SocketStatus;
   medium: string;
   tags: string;
   due_date: string | null; // RFC 3339 date (YYYY-MM-DD) or null
+  author_override?: string;
+  license_override?: string;
+  provenance_ledger?: ProvenanceAuditEntry[];
+  symbolism?: SocketTenantSymbolism;
+}
+
+export interface OpenExternalEditorResult {
+  path: string;
+  work_id: string;
+  original_sha256: string;
+  message: string;
+}
+
+export interface SyncExternalEditsResult {
+  modified: boolean;
+  socket: Socket;
+  old_sha256: string;
+  new_sha256: string;
+  message: string;
 }
 
 export const STATUS_OPTIONS: { value: SocketStatus; label: string }[] = [
@@ -31,7 +125,15 @@ export const STATUS_OPTIONS: { value: SocketStatus; label: string }[] = [
 ];
 
 export function emptyMetadata(): SocketMetadata {
-  return { status: "not_started", medium: "", tags: "", due_date: null };
+  return {
+    status: "not_started",
+    medium: "",
+    tags: "",
+    due_date: null,
+    author_override: "",
+    license_override: "",
+    provenance_ledger: [],
+  };
 }
 
 /** One candidate work attached to a socket. */
@@ -67,6 +169,7 @@ export interface Project {
   name: string;
   path: string;
   grid_columns: number; // 1..4 (REQUIREMENTS.md §6.2, capped at 4)
+  metadata?: ProjectMetadata;
   sockets: Socket[];
 }
 

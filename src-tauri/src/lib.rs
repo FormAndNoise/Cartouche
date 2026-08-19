@@ -9,15 +9,20 @@ mod repair;
 mod socket;
 mod work;
 
-pub use csv_import::{get_job_service, import_csv_service, preview_csv_service};
+pub use csv_import::{
+    export_csv_service, get_job_service, import_csv_service, preview_csv_service,
+};
 pub use error::AppError;
-pub use export::export_project_service;
+pub use export::{export_project_service, import_project_service};
 pub use extract::extract_text_service;
 pub use models::{Project, Socket, SocketId};
 pub use project::{create_project, get_project, update_project};
 pub use repair::repair_scan_service;
 pub use socket::{archive_socket, reorder_sockets, select_winner, set_socket_lock, update_socket};
-pub use work::{attach_work_service, import_dropped_files_service, remove_work_service};
+pub use work::{
+    attach_work_data_service, attach_work_service, import_dropped_files_service, move_work_service,
+    open_in_external_editor_service, remove_work_service, sync_external_edits_service,
+};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -34,13 +39,19 @@ pub fn run() {
             archive_socket,
             select_winner,
             work::attach_work,
+            work::attach_work_bytes,
             work::remove_work,
+            work::move_work,
+            work::open_in_external_editor,
+            work::sync_external_edits,
             work::import_dropped_files,
             csv_import::preview_csv,
             csv_import::import_csv,
+            csv_import::export_csv,
             csv_import::get_job,
             extract::extract_text,
             export::export_project,
+            export::import_project,
             repair::repair_scan
         ])
         .run(tauri::generate_context!())
@@ -300,7 +311,8 @@ mod tests {
         fn updates_project_name_and_grid_columns() {
             let dir = tempdir().unwrap();
             create_project_service("Initial", 2, dir.path()).unwrap();
-            let updated = update_project_service(dir.path(), Some("Renamed"), Some(4)).unwrap();
+            let updated =
+                update_project_service(dir.path(), Some("Renamed"), Some(4), None).unwrap();
             assert_eq!(updated.name, "Renamed");
             assert_eq!(updated.grid_columns, 4);
 
@@ -313,8 +325,8 @@ mod tests {
         fn rejects_invalid_grid_columns() {
             let dir = tempdir().unwrap();
             create_project_service("Test", 2, dir.path()).unwrap();
-            let err0 = update_project_service(dir.path(), None, Some(0)).unwrap_err();
-            let err5 = update_project_service(dir.path(), None, Some(5)).unwrap_err();
+            let err0 = update_project_service(dir.path(), None, Some(0), None).unwrap_err();
+            let err5 = update_project_service(dir.path(), None, Some(5), None).unwrap_err();
             assert!(matches!(err0, AppError::InvalidGridColumns));
             assert!(matches!(err5, AppError::InvalidGridColumns));
         }
@@ -488,8 +500,12 @@ mod tests {
         use crate::error::AppError;
         use crate::project::create_project_service;
         use crate::socket::{select_winner_service, set_socket_lock_service};
-        use crate::work::{attach_work_service, import_dropped_files_service, remove_work_service};
+        use crate::work::{
+            attach_work_service, import_dropped_files_service, move_work_service,
+            open_in_external_editor_service, remove_work_service, sync_external_edits_service,
+        };
         use std::fs;
+        use std::path::Path;
         use tempfile::tempdir;
 
         const TINY_PNG: &[u8] = &[
@@ -676,6 +692,57 @@ mod tests {
                 .join(format!("{}.png", work.id));
             assert!(preview_path.exists());
         }
+
+        #[test]
+        fn move_work_moves_work_between_unlocked_sockets() {
+            let dir = tempdir().unwrap();
+            let p = create_project_service("Deck", 2, dir.path()).unwrap();
+            let s0_id = p.sockets[0].id;
+            let s1_id = p.sockets[1].id;
+
+            let img_path = dir.path().join("test.png");
+            fs::write(&img_path, TINY_PNG).unwrap();
+            let socket0 =
+                attach_work_service(dir.path(), s0_id, img_path.to_str().unwrap()).unwrap();
+            let work_id = socket0.works[0].id;
+
+            let updated_proj = move_work_service(dir.path(), s0_id, s1_id, work_id).unwrap();
+            assert_eq!(updated_proj.sockets[0].works.len(), 0);
+            assert_eq!(updated_proj.sockets[1].works.len(), 1);
+            assert_eq!(updated_proj.sockets[1].works[0].id, work_id);
+            assert_eq!(updated_proj.sockets[1].selected_work_id, Some(work_id));
+        }
+
+        #[test]
+        fn external_editor_syncs_modifications_and_logs_forensic_provenance() {
+            let dir = tempdir().unwrap();
+            let p = create_project_service("Deck", 1, dir.path()).unwrap();
+            let s0_id = p.sockets[0].id;
+
+            let img_path = dir.path().join("original.png");
+            fs::write(&img_path, TINY_PNG).unwrap();
+            let socket =
+                attach_work_service(dir.path(), s0_id, img_path.to_str().unwrap()).unwrap();
+            let work_id = socket.works[0].id;
+
+            // Open in external editor
+            let open_res = open_in_external_editor_service(dir.path(), s0_id, work_id).unwrap();
+            assert!(!open_res.path.is_empty());
+
+            // Simulate user editing and saving file externally
+            let asset_abs = Path::new(&open_res.path);
+            fs::write(asset_abs, b"MODIFIED_IMAGE_BYTES_FROM_EXTERNAL_APP").unwrap();
+
+            // Sync edits
+            let sync_res = sync_external_edits_service(dir.path(), s0_id, work_id).unwrap();
+            assert!(sync_res.modified);
+            assert_ne!(sync_res.old_sha256, sync_res.new_sha256);
+            assert!(sync_res
+                .socket
+                .metadata_json
+                .contains("EXTERNAL_EDIT_COMMITTED"));
+            assert!(sync_res.socket.metadata_json.contains(&sync_res.new_sha256));
+        }
     }
 
     mod csv_tests {
@@ -746,6 +813,52 @@ mod tests {
 
             assert_eq!(p.sockets[1].title, "I - Magician");
             assert!(p.sockets[1].metadata_json.contains("\"status\":\"done\""));
+        }
+
+        #[test]
+        fn import_csv_normalizes_status_synonyms() {
+            let dir = tempdir().unwrap();
+            create_project_service("Deck", 4, dir.path()).unwrap();
+
+            let csv = "title,status\n0 - The Fool,todo\nI - Magician,wip\nII - High Priestess,review\nIII - Empress,complete";
+            let res = import_csv_service(dir.path(), csv, "update").unwrap();
+            let job = get_job_service(dir.path(), &res.job_id).unwrap();
+
+            assert_eq!(job.result.as_ref().unwrap().rows_processed, 4);
+            assert_eq!(job.result.as_ref().unwrap().rows_skipped, 0);
+            assert_eq!(job.warnings.len(), 0);
+
+            let p = crate::project::get_project_service(dir.path()).unwrap();
+            assert!(p.sockets[0]
+                .metadata_json
+                .contains("\"status\":\"not_started\""));
+            assert!(p.sockets[1]
+                .metadata_json
+                .contains("\"status\":\"in_progress\""));
+            assert!(p.sockets[2]
+                .metadata_json
+                .contains("\"status\":\"needs_review\""));
+            assert!(p.sockets[3].metadata_json.contains("\"status\":\"done\""));
+        }
+
+        #[test]
+        fn import_csv_expands_socket_count_to_match_csv() {
+            let dir = tempdir().unwrap();
+            create_project_service("Small Deck", 2, dir.path()).unwrap();
+
+            let csv = "title,status\nCard 1,done\nCard 2,done\nCard 3,in_progress\nCard 4,not_started\nCard 5,todo";
+            let res = import_csv_service(dir.path(), csv, "update").unwrap();
+            let job = get_job_service(dir.path(), &res.job_id).unwrap();
+
+            assert_eq!(job.result.as_ref().unwrap().rows_processed, 5);
+            assert_eq!(job.result.as_ref().unwrap().rows_skipped, 0);
+
+            let p = crate::project::get_project_service(dir.path()).unwrap();
+            assert_eq!(p.sockets.len(), 5);
+            assert_eq!(p.sockets[4].title, "Card 5");
+            assert!(p.sockets[4]
+                .metadata_json
+                .contains("\"status\":\"not_started\""));
         }
 
         #[test]
@@ -848,7 +961,7 @@ mod tests {
     }
 
     mod export_tests {
-        use crate::export::export_project_service;
+        use crate::export::{export_project_service, import_project_service};
         use crate::project::create_project_service;
         use tempfile::tempdir;
 
@@ -857,7 +970,7 @@ mod tests {
             let dir = tempdir().unwrap();
             create_project_service("Deck", 2, dir.path()).unwrap();
 
-            let zip_dest = dir.path().join("export.tarot.zip");
+            let zip_dest = dir.path().join("export.crtch");
             let res = export_project_service(dir.path(), zip_dest.to_str().unwrap()).unwrap();
 
             assert!(zip_dest.exists());
@@ -868,6 +981,26 @@ mod tests {
             let mut archive = zip::ZipArchive::new(file).unwrap();
             assert!(archive.by_name(".tarot/manifest.json").is_ok());
             assert!(archive.by_name(".tarot/project.sqlite").is_ok());
+        }
+
+        #[test]
+        fn import_project_unpacks_crtch_package() {
+            let dir = tempdir().unwrap();
+            create_project_service("Exported Deck", 3, dir.path()).unwrap();
+
+            let pkg_path = dir.path().join("deck.crtch");
+            export_project_service(dir.path(), pkg_path.to_str().unwrap()).unwrap();
+
+            let import_dir = tempdir().unwrap();
+            let imported = import_project_service(
+                pkg_path.to_str().unwrap(),
+                import_dir.path().to_str().unwrap(),
+            )
+            .unwrap();
+
+            assert_eq!(imported.name, "Exported Deck");
+            assert_eq!(imported.sockets.len(), 3);
+            assert!(import_dir.path().join(".tarot/project.sqlite").exists());
         }
     }
 

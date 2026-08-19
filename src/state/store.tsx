@@ -11,6 +11,7 @@ import {
   ApiError,
   type CreateProjectRequest,
   type Project,
+  type ProjectMetadata,
   type Socket,
   type SocketMetadata,
 } from "../api/types";
@@ -179,6 +180,26 @@ export function BoardProvider({
     [client, pushToast],
   );
 
+  const updateProjectMetadata = useCallback(
+    async (metadata: ProjectMetadata) => {
+      const p = projectRef.current;
+      if (!p) return false;
+      try {
+        const updated = await client.updateProject({
+          project_path: p.path,
+          metadata,
+        });
+        setProject(updated);
+        projectRef.current = updated;
+        return true;
+      } catch (e) {
+        pushToast("error", errorMessage(e));
+        return false;
+      }
+    },
+    [client, pushToast],
+  );
+
   const updateSocketFields = useCallback(
     async (
       socketId: string,
@@ -264,6 +285,79 @@ export function BoardProvider({
     [client, applySocket, pushToast],
   );
 
+  const moveWorkBetweenSockets = useCallback(
+    async (
+      sourceSocketId: string,
+      targetSocketId: string,
+      workId: string,
+    ): Promise<boolean> => {
+      const p = projectRef.current;
+      if (!p) return false;
+      try {
+        const updated = await client.moveWork({
+          project_path: p.path,
+          source_socket_id: sourceSocketId,
+          target_socket_id: targetSocketId,
+          work_id: workId,
+        });
+        setProject(updated);
+        projectRef.current = updated;
+        pushToast("success", "Artwork moved to target socket");
+        return true;
+      } catch (e) {
+        pushToast("error", errorMessage(e));
+        return false;
+      }
+    },
+    [client, pushToast],
+  );
+
+  const openInExternalEditor = useCallback(
+    async (socketId: string, workId: string): Promise<boolean> => {
+      const p = projectRef.current;
+      if (!p) return false;
+      try {
+        const res = await client.openInExternalEditor({
+          project_path: p.path,
+          socket_id: socketId,
+          work_id: workId,
+        });
+        pushToast("info", res.message || "File opened in external editor.");
+        await syncProject();
+        return true;
+      } catch (e) {
+        pushToast("error", errorMessage(e));
+        return false;
+      }
+    },
+    [client, pushToast, syncProject],
+  );
+
+  const syncExternalEdits = useCallback(
+    async (socketId: string, workId: string): Promise<boolean> => {
+      const p = projectRef.current;
+      if (!p) return false;
+      try {
+        const res = await client.syncExternalEdits({
+          project_path: p.path,
+          socket_id: socketId,
+          work_id: workId,
+        });
+        applySocket(res.socket);
+        if (res.modified) {
+          pushToast("success", res.message);
+        } else {
+          pushToast("info", res.message);
+        }
+        return res.modified;
+      } catch (e) {
+        pushToast("error", errorMessage(e));
+        return false;
+      }
+    },
+    [client, applySocket, pushToast],
+  );
+
   const attachFiles = useCallback(
     async (socketId: string, files: AttachableFile[]) => {
       const p = projectRef.current;
@@ -273,9 +367,13 @@ export function BoardProvider({
         const mock = getMockClient();
         const paths: string[] = [];
         for (const f of files) {
-          const url = URL.createObjectURL(f.blob);
-          mock?.registerLocalFile(url, f.blob);
-          paths.push(url);
+          if (f.path && !mock) {
+            paths.push(f.path);
+          } else {
+            const url = URL.createObjectURL(f.blob);
+            mock?.registerLocalFile(url, f.blob);
+            paths.push(url);
+          }
         }
         const result = await client.importDroppedFiles({
           project_path: p.path,
@@ -324,11 +422,15 @@ export function BoardProvider({
       closeProject,
       syncProject,
       setGridColumns,
+      updateProjectMetadata,
       setSelectedSocket,
       updateSocketFields,
       setSocketLock,
       selectWinner,
       removeWork,
+      moveWorkBetweenSockets,
+      openInExternalEditor,
+      syncExternalEdits,
       attachFiles,
       pushToast,
       dismissToast,
@@ -348,14 +450,19 @@ export function BoardProvider({
       closeProject,
       syncProject,
       setGridColumns,
+      updateProjectMetadata,
       setSelectedSocket,
       updateSocketFields,
       setSocketLock,
       selectWinner,
       removeWork,
+      moveWorkBetweenSockets,
+      openInExternalEditor,
+      syncExternalEdits,
       attachFiles,
       pushToast,
       dismissToast,
+      setCsvImportOpen,
     ],
   );
 

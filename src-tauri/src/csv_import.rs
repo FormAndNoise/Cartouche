@@ -41,7 +41,27 @@ pub struct JobStatus {
     pub result: Option<ImportResult>,
 }
 
-const VALID_STATUSES: &[&str] = &["not_started", "in_progress", "needs_review", "done"];
+pub fn parse_status_value(input: &str) -> Option<&'static str> {
+    let clean: String = input
+        .trim()
+        .to_lowercase()
+        .chars()
+        .filter(|c| c.is_alphanumeric())
+        .collect();
+
+    match clean.as_str() {
+        "notstarted" | "todo" | "backlog" | "queued" | "unstarted" | "open" | "draft" | "new"
+        | "pending" | "0" | "" => Some("not_started"),
+        "inprogress" | "wip" | "doing" | "working" | "started" | "active" | "development" | "1" => {
+            Some("in_progress")
+        }
+        "needsreview" | "review" | "inreview" | "underreview" | "feedback" | "qa" | "audit"
+        | "check" | "testing" | "2" => Some("needs_review"),
+        "done" | "complete" | "completed" | "finished" | "ready" | "shipped" | "final"
+        | "closed" | "passed" | "3" => Some("done"),
+        _ => None,
+    }
+}
 
 /// Parses CSV text into a vector of rows, where each row is a vector of cells.
 /// Supports quotes, escaped double quotes (""), and multiline/CRLF.
@@ -172,16 +192,27 @@ pub fn import_csv_service(
                 }
                 (s.id, Some(row_idx))
             } else {
-                warnings.push(ImportWarning {
-                    row: row_num,
-                    reason: "Row exceeds socket count (socket count is fixed)".to_string(),
-                    code: "OUT_OF_RANGE".to_string(),
+                // Dynamically expand socket count to match CSV
+                let new_pos = project.sockets.len() as i64;
+                tx.execute(
+                    "INSERT INTO sockets (project_id, position) VALUES (1, ?1)",
+                    params![new_pos],
+                )?;
+                let new_id = tx.last_insert_rowid();
+                project.sockets.push(crate::models::Socket {
+                    id: new_id,
+                    position: new_pos,
+                    title: String::new(),
+                    notes: String::new(),
+                    metadata_json: "{}".to_string(),
+                    locked: false,
+                    selected_work_id: None,
+                    works: Vec::new(),
                 });
-                skipped += 1;
-                continue;
+                (new_id, Some(row_idx))
             }
         } else {
-            // append mode: find next empty socket
+            // append mode: find next empty socket or allocate new socket
             while cursor < project.sockets.len()
                 && (!project.sockets[cursor].title.trim().is_empty()
                     || project.sockets[cursor].locked)
@@ -199,13 +230,25 @@ pub fn import_csv_service(
             if cursor < project.sockets.len() {
                 (project.sockets[cursor].id, Some(cursor))
             } else {
-                warnings.push(ImportWarning {
-                    row: row_num,
-                    reason: "No empty socket left to append into".to_string(),
-                    code: "OUT_OF_RANGE".to_string(),
+                // Dynamically expand socket count for append
+                let new_pos = project.sockets.len() as i64;
+                tx.execute(
+                    "INSERT INTO sockets (project_id, position) VALUES (1, ?1)",
+                    params![new_pos],
+                )?;
+                let new_id = tx.last_insert_rowid();
+                project.sockets.push(crate::models::Socket {
+                    id: new_id,
+                    position: new_pos,
+                    title: String::new(),
+                    notes: String::new(),
+                    metadata_json: "{}".to_string(),
+                    locked: false,
+                    selected_work_id: None,
+                    works: Vec::new(),
                 });
-                skipped += 1;
-                continue;
+                cursor = project.sockets.len() - 1;
+                (new_id, Some(cursor))
             }
         };
 
@@ -237,7 +280,9 @@ pub fn import_csv_service(
         if let Some(s_idx) = status_idx {
             if let Some(v) = row.get(s_idx).map(|s| s.trim()) {
                 if !v.is_empty() {
-                    if !VALID_STATUSES.contains(&v) {
+                    if let Some(canonical) = parse_status_value(v) {
+                        meta["status"] = serde_json::Value::String(canonical.to_string());
+                    } else {
                         warnings.push(ImportWarning {
                             row: row_num,
                             reason: format!("Invalid status '{}' — row skipped", v),
@@ -246,7 +291,6 @@ pub fn import_csv_service(
                         skipped += 1;
                         continue;
                     }
-                    meta["status"] = serde_json::Value::String(v.to_string());
                 }
             }
         }
@@ -269,6 +313,28 @@ pub fn import_csv_service(
                     meta["due_date"] = serde_json::Value::Null;
                 } else {
                     meta["due_date"] = serde_json::Value::String(v.to_string());
+                }
+            }
+        }
+
+        let author_idx = headers
+            .iter()
+            .position(|h| h == "author" || h == "author_override");
+        if let Some(a_idx) = author_idx {
+            if let Some(v) = row.get(a_idx).map(|s| s.trim()) {
+                if !v.is_empty() {
+                    meta["author_override"] = serde_json::Value::String(v.to_string());
+                }
+            }
+        }
+
+        let license_idx = headers
+            .iter()
+            .position(|h| h == "license" || h == "license_override");
+        if let Some(l_idx) = license_idx {
+            if let Some(v) = row.get(l_idx).map(|s| s.trim()) {
+                if !v.is_empty() {
+                    meta["license_override"] = serde_json::Value::String(v.to_string());
                 }
             }
         }
@@ -317,6 +383,52 @@ pub fn import_csv_service(
     })
 }
 
+fn escape_csv_field(s: &str) -> String {
+    if s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_string()
+    }
+}
+
+pub fn export_csv_service(root: &Path) -> Result<String, AppError> {
+    let conn = open(root)?;
+    let project = read_project(&conn, root)?;
+
+    let mut out = String::from("title,status,medium,tags,due_date,author,license,notes\n");
+    for s in &project.sockets {
+        let title = escape_csv_field(&s.title);
+        let notes = escape_csv_field(&s.notes);
+        let meta: serde_json::Value = serde_json::from_str(&s.metadata_json).unwrap_or_default();
+        let status = escape_csv_field(
+            meta.get("status")
+                .and_then(|v| v.as_str())
+                .unwrap_or("not_started"),
+        );
+        let medium = escape_csv_field(meta.get("medium").and_then(|v| v.as_str()).unwrap_or(""));
+        let tags = escape_csv_field(meta.get("tags").and_then(|v| v.as_str()).unwrap_or(""));
+        let due_date =
+            escape_csv_field(meta.get("due_date").and_then(|v| v.as_str()).unwrap_or(""));
+        let author = escape_csv_field(
+            meta.get("author_override")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        );
+        let license = escape_csv_field(
+            meta.get("license_override")
+                .and_then(|v| v.as_str())
+                .unwrap_or(""),
+        );
+
+        out.push_str(&format!(
+            "{},{},{},{},{},{},{},{}\n",
+            title, status, medium, tags, due_date, author, license, notes
+        ));
+    }
+
+    Ok(out)
+}
+
 pub fn get_job_service(root: &Path, job_id_str: &str) -> Result<JobStatus, AppError> {
     let conn = open(root)?;
     let job_id: i64 = job_id_str.parse().map_err(|_| AppError::NotFound)?;
@@ -358,6 +470,11 @@ pub fn import_csv(
     mode: String,
 ) -> Result<ImportJobResponse, AppError> {
     import_csv_service(Path::new(&project_path), &csv_text, &mode)
+}
+
+#[tauri::command]
+pub fn export_csv(project_path: String) -> Result<String, AppError> {
+    export_csv_service(Path::new(&project_path))
 }
 
 #[tauri::command]

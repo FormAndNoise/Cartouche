@@ -14,14 +14,18 @@ import type { BackendClient } from "./client";
 import {
   ApiError,
   emptyMetadata,
+  emptyProjectMetadata,
   type CreateProjectRequest,
   type CsvPreview,
   type DroppedFilesResult,
   type JobStatus,
+  type OpenExternalEditorResult,
   type Project,
+  type ProjectMetadata,
   type RepairScanResult,
   type Socket,
   type SocketMetadata,
+  type SyncExternalEditsResult,
   type UpdateSocketRequest,
   type Work,
 } from "./types";
@@ -73,22 +77,43 @@ interface RawProject {
   name: string;
   path: string;
   grid_columns: number;
+  metadata_json?: string;
+  metadata?: ProjectMetadata;
   sockets: RawSocket[];
+}
+
+function toAssetUrl(filePath: string): string {
+  if (
+    filePath.startsWith("http://") ||
+    filePath.startsWith("https://") ||
+    filePath.startsWith("blob:") ||
+    filePath.startsWith("data:")
+  ) {
+    return filePath;
+  }
+  try {
+    const w =
+      typeof window !== "undefined"
+        ? (window as unknown as {
+            __TAURI_INTERNALS__?: {
+              convertFileSrc?: (path: string, protocol?: string) => string;
+            };
+          })
+        : undefined;
+    if (typeof w?.__TAURI_INTERNALS__?.convertFileSrc === "function") {
+      return w.__TAURI_INTERNALS__.convertFileSrc(filePath, "asset");
+    }
+  } catch {
+    /* fallback below */
+  }
+  const normalized = filePath.replace(/\\/g, "/");
+  return `http://asset.localhost/${encodeURIComponent(normalized)}`;
 }
 
 function normalizeWork(raw: RawWork): Work {
   let previewUri = raw.preview_uri ?? null;
-  // Convert local filesystem paths to Tauri asset protocol URLs.
-  // Object URLs (blob:), data URIs, and http(s) URLs pass through unchanged.
-  if (
-    previewUri &&
-    !previewUri.startsWith("http") &&
-    !previewUri.startsWith("blob:") &&
-    !previewUri.startsWith("data:") &&
-    !previewUri.startsWith("asset:")
-  ) {
-    const normalized = previewUri.replace(/\\/g, "/");
-    previewUri = `asset://localhost/${normalized}`;
+  if (previewUri) {
+    previewUri = toAssetUrl(previewUri);
   }
   return {
     ...raw,
@@ -127,10 +152,25 @@ function normalizeSocket(raw: RawSocket): Socket {
 }
 
 function normalizeProject(raw: RawProject): Project {
+  let metadata: ProjectMetadata = emptyProjectMetadata();
+  if (raw.metadata) {
+    metadata = { ...emptyProjectMetadata(), ...raw.metadata };
+  } else if (raw.metadata_json) {
+    try {
+      metadata = {
+        ...emptyProjectMetadata(),
+        ...JSON.parse(raw.metadata_json),
+      };
+    } catch {
+      metadata = emptyProjectMetadata();
+    }
+  }
+
   return {
     name: raw.name,
     path: raw.path,
     grid_columns: raw.grid_columns,
+    metadata,
     sockets: raw.sockets ? raw.sockets.map(normalizeSocket) : [],
   };
 }
@@ -177,11 +217,13 @@ export class TauriBackendClient implements BackendClient {
     project_path: string;
     name?: string;
     grid_columns?: number;
+    metadata?: ProjectMetadata;
   }): Promise<Project> {
     const raw = await this.call<RawProject>("update_project", {
       projectPath: req.project_path,
       name: req.name,
       gridColumns: req.grid_columns,
+      metadataJson: req.metadata ? JSON.stringify(req.metadata) : undefined,
     });
     return normalizeProject(raw);
   }
@@ -254,15 +296,50 @@ export class TauriBackendClient implements BackendClient {
     socket_id: string;
     paths: string[];
   }): Promise<DroppedFilesResult> {
-    const res = await this.call<DroppedFilesResult>("import_dropped_files", {
-      projectPath: req.project_path,
-      socketId: Number(req.socket_id) || req.socket_id,
-      paths: req.paths,
-    });
-    return {
-      accepted: res.accepted.map(normalizeWork),
-      rejected: res.rejected,
-    };
+    const nativePaths: string[] = [];
+    const accepted: Work[] = [];
+    const rejected: DroppedFilesResult["rejected"] = [];
+
+    for (const p of req.paths) {
+      if (p.startsWith("blob:") || p.startsWith("data:")) {
+        try {
+          const res = await fetch(p);
+          const buf = await res.arrayBuffer();
+          const bytes = Array.from(new Uint8Array(buf));
+          const name = p.split("/").pop() || "image.png";
+          const raw = await this.call<RawSocket>("attach_work_bytes", {
+            projectPath: req.project_path,
+            socketId: Number(req.socket_id) || req.socket_id,
+            name,
+            bytes,
+          });
+          const updatedSocket = normalizeSocket(raw);
+          if (updatedSocket.works.length > 0) {
+            accepted.push(updatedSocket.works[updatedSocket.works.length - 1]);
+          }
+        } catch (e) {
+          rejected.push({
+            path: p,
+            reason: String(e),
+            code: "FILE_UNREADABLE",
+          });
+        }
+      } else {
+        nativePaths.push(p);
+      }
+    }
+
+    if (nativePaths.length > 0) {
+      const res = await this.call<DroppedFilesResult>("import_dropped_files", {
+        projectPath: req.project_path,
+        socketId: Number(req.socket_id) || req.socket_id,
+        paths: nativePaths,
+      });
+      accepted.push(...res.accepted.map(normalizeWork));
+      rejected.push(...res.rejected);
+    }
+
+    return { accepted, rejected };
   }
 
   async removeWork(req: {
@@ -278,6 +355,58 @@ export class TauriBackendClient implements BackendClient {
       force: req.force,
     });
     return normalizeSocket(raw);
+  }
+
+  async moveWork(req: {
+    project_path: string;
+    source_socket_id: string;
+    target_socket_id: string;
+    work_id: string;
+  }): Promise<Project> {
+    const raw = await this.call<RawProject>("move_work", {
+      projectPath: req.project_path,
+      sourceSocketId: Number(req.source_socket_id) || req.source_socket_id,
+      targetSocketId: Number(req.target_socket_id) || req.target_socket_id,
+      workId: Number(req.work_id) || req.work_id,
+    });
+    return normalizeProject(raw);
+  }
+
+  async openInExternalEditor(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<OpenExternalEditorResult> {
+    return this.call<OpenExternalEditorResult>("open_in_external_editor", {
+      projectPath: req.project_path,
+      socketId: Number(req.socket_id) || req.socket_id,
+      workId: Number(req.work_id) || req.work_id,
+    });
+  }
+
+  async syncExternalEdits(req: {
+    project_path: string;
+    socket_id: string;
+    work_id: string;
+  }): Promise<SyncExternalEditsResult> {
+    const raw = await this.call<{
+      modified: boolean;
+      socket: RawSocket;
+      old_sha256: string;
+      new_sha256: string;
+      message: string;
+    }>("sync_external_edits", {
+      projectPath: req.project_path,
+      socketId: Number(req.socket_id) || req.socket_id,
+      workId: Number(req.work_id) || req.work_id,
+    });
+    return {
+      modified: raw.modified,
+      socket: normalizeSocket(raw.socket),
+      old_sha256: raw.old_sha256,
+      new_sha256: raw.new_sha256,
+      message: raw.message,
+    };
   }
 
   previewCsv(req: {
@@ -322,6 +451,12 @@ export class TauriBackendClient implements BackendClient {
     return normalizeSocket(raw);
   }
 
+  async exportCsv(projectPath: string): Promise<string> {
+    return this.call<string>("export_csv", {
+      projectPath,
+    });
+  }
+
   exportProject(req: {
     project_path: string;
     destination_path: string;
@@ -333,6 +468,17 @@ export class TauriBackendClient implements BackendClient {
         destinationPath: req.destination_path,
       },
     );
+  }
+
+  async importProject(req: {
+    package_path: string;
+    destination_path: string;
+  }): Promise<Project> {
+    const raw = await this.call<RawProject>("import_project", {
+      packagePath: req.package_path,
+      destinationPath: req.destination_path,
+    });
+    return normalizeProject(raw);
   }
 
   repairScan(req: { project_path: string }): Promise<RepairScanResult> {

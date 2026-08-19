@@ -1,27 +1,33 @@
-# Tarot Socket Board
+# Cartouche
 
-A local-first, single-user desktop application for visual artists managing
-large multi-deliverable creative projects (e.g. a 70+ card tarot deck). Built
-with **Tauri 2 (Rust) + React/TypeScript/Vite + SQLite**.
+A local-first desktop application for visual artists managing large multi-deliverable creative series (such as tarot decks, TCGs, and print suites). Built with **Tauri 2 (Rust) + React 19 / TypeScript / Vite + SQLite**.
 
-The app provides a grid of ordered "sockets" — one per deliverable — into which
-the artist drops candidate images/documents, compares them, picks a winner,
-and tracks overall project progress at a glance. Data lives in a portable
-`.tarot/` project folder. No server, no cloud, no multi-user support.
+The app provides a grid of ordered deliverable "sockets" into which the artist drops candidate artwork variations, compares them side-by-side, picks a winner, and tracks overall project progress at a glance. Data lives in a portable `.tarot/` project directory containing an embedded SQLite database and content-addressed asset store.
 
-## Project structure
+## Project Structure
 
 ```
 .
-├── src/                  # React/TypeScript frontend (Vite)
+├── src/                  # React 19 / TypeScript frontend (Vite)
 │   ├── App.tsx            # Root component
 │   ├── main.tsx           # Vite entry point
-│   ├── lib/api.ts         # Tauri IPC re-exports
-│   └── __tests__/         # Vitest + Testing Library
-├── src-tauri/             # Rust/Tauri backend
+│   ├── components/        # UI components (SocketGrid, SocketCard, DetailPanel, CsvImportModal, etc.)
+│   ├── state/             # BoardProvider and context state store
+│   ├── api/               # BackendClient interface, TauriBackendClient & MockBackendClient
+│   └── __tests__/         # Vitest + React Testing Library suites
+├── src-tauri/             # Rust / Tauri 2 native core
 │   ├── src/
 │   │   ├── lib.rs          # Tauri builder + IPC commands
-│   │   └── main.rs         # Binary entry (re-exports lib::run)
+│   │   ├── main.rs         # Binary entry
+│   │   ├── error.rs        # Structured ApiError envelope
+│   │   ├── schema.rs       # SQLite schema & migrations
+│   │   ├── project.rs      # Project lifecycle service
+│   │   ├── socket.rs       # Socket CRUD & lock invariants
+│   │   ├── work.rs         # Work attachment & thumbnail generation
+│   │   ├── csv.rs          # CSV streaming importer & parser
+│   │   ├── extract.rs      # Document text extraction
+│   │   ├── export.rs       # Zip project export & import
+│   │   └── repair.rs       # Missing & orphaned asset repair scan
 │   ├── Cargo.toml
 │   ├── tauri.conf.json     # Tauri config (window, bundle, dev server)
 │   └── capabilities/       # Tauri 2 permission capabilities
@@ -34,7 +40,7 @@ and tracks overall project progress at a glance. Data lives in a portable
 
 ## Prerequisites
 
-Install these once before first run:
+Install these prerequisites:
 
 | Tool | Version | Notes |
 |------|---------|-------|
@@ -44,46 +50,51 @@ Install these once before first run:
 | Tauri CLI | 2.x | `cargo install tauri-cli --version "^2" --locked` |
 | MSVC Build Tools | 2019+ | Windows only (for Rust/Tauri) |
 
-## How to run
+## How to Run
+
+### Direct CLI (Cross-Platform)
 
 ```bash
-# 1. Copy environment file (no real secrets needed)
-cp .env.example .env
+# 1. Install dependencies
+pnpm install
+cd src-tauri && cargo fetch && cd ..
 
-# 2. Install dependencies
-make install        # or: pnpm install && cd src-tauri && cargo fetch
+# 2. Development mode
+pnpm dev             # Vite dev server only (runs against MockBackendClient in browser)
+pnpm dev:tauri       # Full desktop app with hot-reload (Tauri + Vite)
 
-# 3. Run tests (CI-friendly, non-interactive)
-make test           # frontend (Vitest) + backend (cargo test)
+# 3. Testing
+pnpm test            # Frontend tests (Vitest + React Testing Library)
+cd src-tauri && cargo test && cd ..  # Backend tests (47 unit + integration tests)
 
-# 4. Build
-make build          # frontend (tsc + vite build) + backend (cargo build --release)
+# 4. Code Quality
+pnpm lint            # ESLint
+pnpm format:check    # Prettier formatting check
+cd src-tauri && cargo clippy --all-targets -- -D warnings && cd ..
 
-# 5. Lint
-make lint           # eslint + cargo clippy
-
-# 6. Dev mode (hot reload)
-make dev            # frontend only (Vite)
-make dev-tauri      # full desktop app (Tauri + Vite)
+# 5. Build
+pnpm build                            # Frontend bundle (tsc + Vite)
+cd src-tauri && cargo build --release # Backend binary
+pnpm tauri build                      # Packaged desktop application installer
 ```
 
-For an all-in-one CI check: `make check` runs install + lint + test + build.
+### Make (Unix / Git Bash / MSYS2)
 
-## Smoke test
+```bash
+make install         # Frontend + backend crate installation
+make dev             # Browser dev mode with MockBackendClient
+make dev-tauri       # Full desktop app with hot-reload
+make test            # Run both frontend and backend test suites
+make test-frontend   # Vitest unit tests
+make test-backend    # Cargo test suite
+make lint            # ESLint + Clippy
+make format          # Prettier + cargo fmt
+make build           # Frontend build + Cargo release build
+make check           # Full CI check (install + lint + format-check + test + build)
+```
 
-The scaffold includes a minimal smoke test proving the app entry point loads:
+## Status & Test Coverage
 
-- **Frontend** (`src/__tests__/App.test.tsx`): renders `<App/>`, asserts the
-  header appears, and verifies the Tauri IPC `app_version` command resolves
-  (mocked in test). Also tests the graceful fallback when no backend is present.
-- **Backend** (`src-tauri/src/lib.rs`): `cargo test` runs a unit test asserting
-  the `app_version` command returns the crate version string.
-
-Both run non-interactively and exit with status 0 on success.
-
-## Status
-
-This is the **scaffold phase** — the project builds, tests pass, and the IPC
-bridge is wired, but feature work (socket grid, file workflow, CSV import,
-etc.) has not started. See [BUILD_PLAN.md](BUILD_PLAN.md) for the full build
-sequence and [REQUIREMENTS.md](REQUIREMENTS.md) for acceptance criteria.
+- **Frontend**: 33 unit and component tests passing via Vitest (`src/__tests__/`).
+- **Backend**: 47 integration and unit tests passing via Cargo (`src-tauri/src/lib.rs`).
+- **Architecture**: M1–M6 core features implemented (Project/Socket services, Work attachment, Content-addressed storage, WebP preview generation, CSV batch ingestion, Text extraction, and Structured error envelopes).

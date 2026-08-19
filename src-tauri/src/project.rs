@@ -68,11 +68,12 @@ pub fn get_project_service(root: &Path) -> Result<Project, AppError> {
     read_project(&conn, root)
 }
 
-/// Update project name and grid columns (US-B02, T-04).
+/// Update project name, grid columns, and metadata (US-B02, T-04).
 pub fn update_project_service(
     root: &Path,
     name: Option<&str>,
     grid_columns: Option<i64>,
+    metadata_json: Option<&str>,
 ) -> Result<Project, AppError> {
     if let Some(columns) = grid_columns {
         if !(1..=4).contains(&columns) {
@@ -81,8 +82,8 @@ pub fn update_project_service(
     }
     let conn = open(root)?;
     let changed = conn.execute(
-        "UPDATE projects SET name = COALESCE(?1, name), grid_columns = COALESCE(?2, grid_columns) WHERE id = 1",
-        params![name, grid_columns],
+        "UPDATE projects SET name = COALESCE(?1, name), grid_columns = COALESCE(?2, grid_columns), metadata_json = COALESCE(?3, metadata_json) WHERE id = 1",
+        params![name, grid_columns, metadata_json],
     )?;
     if changed == 0 {
         return Err(AppError::ProjectCorrupt("missing project row".into()));
@@ -111,6 +112,12 @@ pub fn update_project(
     project_path: String,
     name: Option<String>,
     grid_columns: Option<i64>,
+    metadata_json: Option<String>,
 ) -> Result<Project, AppError> {
-    update_project_service(Path::new(&project_path), name.as_deref(), grid_columns)
+    update_project_service(
+        Path::new(&project_path),
+        name.as_deref(),
+        grid_columns,
+        metadata_json.as_deref(),
+    )
 }

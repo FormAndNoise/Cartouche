@@ -4,6 +4,7 @@ import type {
   ApiError,
   CreateProjectRequest,
   Project,
+  ProjectMetadata,
   SocketMetadata,
 } from "../api/types";
 
@@ -16,6 +17,7 @@ export interface Toast {
 export interface AttachableFile {
   name: string;
   blob: Blob;
+  path?: string;
 }
 
 export interface BoardStore {
@@ -33,6 +35,7 @@ export interface BoardStore {
   closeProject(): void;
   syncProject(): Promise<void>;
   setGridColumns(n: number): Promise<void>;
+  updateProjectMetadata(metadata: ProjectMetadata): Promise<boolean>;
 
   setSelectedSocket(id: string | null): void;
   updateSocketFields(
@@ -46,6 +49,13 @@ export interface BoardStore {
     workId: string,
     force?: boolean,
   ): Promise<boolean>;
+  moveWorkBetweenSockets(
+    sourceSocketId: string,
+    targetSocketId: string,
+    workId: string,
+  ): Promise<boolean>;
+  openInExternalEditor(socketId: string, workId: string): Promise<boolean>;
+  syncExternalEdits(socketId: string, workId: string): Promise<boolean>;
   attachFiles(socketId: string, files: AttachableFile[]): Promise<boolean>;
 
   pushToast(kind: Toast["kind"], message: string): void;
