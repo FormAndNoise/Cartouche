@@ -368,7 +368,7 @@ that the app is usable regardless of input method.
 As an artist, I want my whole project to live in one folder I can copy or back up, so that my
 work isn't scattered across app-internal storage I can't find.
 
-- AC-D01.1: GIVEN a new project is created WHEN `create_project` completes THEN
+- AC-D01.1: GIVEN a new project is created WHEN `create_project`` completes THEN
   `<project>.tarot/project.sqlite`, `<project>.tarot/assets/`, `<project>.tarot/previews/`, and
   `<project>.tarot/manifest.json` all exist under the chosen `project_path`.
 - AC-D01.2: GIVEN the `.tarot/` folder is copied to another machine with the same app version

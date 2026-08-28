@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
      stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Cartouche stadium deliverable enclosure -->
-  <rect x="6.5" y="3" width="11" height="14.5" rx="5.5"/>
+  <!-- Card-proportioned rectangular deliverable socket -->
+  <rect x="6.5" y="3" width="11" height="14.5" rx="2"/>
   <!-- Tangent baseline seal bar -->
   <line x1="4.5" y1="20.25" x2="19.5" y2="20.25"/>
   <!-- Dual knot binding loops -->

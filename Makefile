@@ -1,62 +1,82 @@
-# Cartouche — Root Makefile
-# Proxies commands to the primary development worktree (.worktrees/t_99bad544_new)
-
-WORKTREE := .worktrees/t_99bad544_new
+# Cartouche — Makefile
+#
+# Direct convenience targets for building, testing, and developing Cartouche.
+#
+# Prerequisites:
+#   - Node.js >= 20 and pnpm >= 9 (or npm)
+#   - Rust stable + cargo toolchain
+#   - Tauri CLI v2: `cargo install tauri-cli --version "^2" --locked` (or npx @tauri-apps/cli)
 
 .PHONY: install install-frontend install-backend build build-frontend build-backend \
         test test-frontend test-backend lint lint-frontend lint-backend format \
         format-check dev dev-tauri clean check
 
-install:
-	$(MAKE) -C $(WORKTREE) install
+# --- Install ---
+
+install: install-frontend install-backend
 
 install-frontend:
-	$(MAKE) -C $(WORKTREE) install-frontend
+	pnpm install --frozen-lockfile || npm install
 
 install-backend:
-	$(MAKE) -C $(WORKTREE) install-backend
+	cd src-tauri && cargo fetch
 
-build:
-	$(MAKE) -C $(WORKTREE) build
+# --- Build ---
+
+build: build-frontend build-backend
 
 build-frontend:
-	$(MAKE) -C $(WORKTREE) build-frontend
+	npm run build
 
 build-backend:
-	$(MAKE) -C $(WORKTREE) build-backend
+	cd src-tauri && cargo build --release
 
-test:
-	$(MAKE) -C $(WORKTREE) test
+# --- Test ---
+
+test: test-frontend test-backend
 
 test-frontend:
-	$(MAKE) -C $(WORKTREE) test-frontend
+	npx vitest run
 
 test-backend:
-	$(MAKE) -C $(WORKTREE) test-backend
+	cd src-tauri && cargo test
 
-lint:
-	$(MAKE) -C $(WORKTREE) lint
+# --- Lint ---
+
+lint: lint-frontend lint-backend
 
 lint-frontend:
-	$(MAKE) -C $(WORKTREE) lint-frontend
+	npx eslint .
 
 lint-backend:
-	$(MAKE) -C $(WORKTREE) lint-backend
+	cd src-tauri && cargo clippy --all-targets -- -D warnings
+
+# --- Format ---
 
 format:
-	$(MAKE) -C $(WORKTREE) format
+	npx prettier --write .
+	cd src-tauri && cargo fmt
 
 format-check:
-	$(MAKE) -C $(WORKTREE) format-check
+	npx prettier --check .
+	cd src-tauri && cargo fmt --check
+
+# --- Dev ---
 
 dev:
-	$(MAKE) -C $(WORKTREE) dev
+	npm run dev
 
 dev-tauri:
-	$(MAKE) -C $(WORKTREE) dev-tauri
+	npx @tauri-apps/cli dev
+
+# --- Clean ---
 
 clean:
-	$(MAKE) -C $(WORKTREE) clean
+	rm -rf dist node_modules/.vite
+	cd src-tauri && cargo clean
 
-check:
-	$(MAKE) -C $(WORKTREE) check
+# --- All-in-one check (CI equivalent) ---
+
+check: install lint test build
+	@echo "install + lint + test + build all passed"
+
