@@ -1,0 +1,160 @@
+{
+  "agentfile": 1,
+  "installs": [
+    {
+      "slug": "design-whimsy-injector",
+      "tool": "antigravity",
+      "projectPath": "D:\\Gimbal_Documentation_Handoff_Package"
+    },
+    {
+      "slug": "marketing-linkedin-content-creator",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\Gimbal-comfy"
+    },
+    {
+      "slug": "marketing-linkedin-content-creator",
+      "tool": "antigravity",
+      "projectPath": null
+    },
+    {
+      "slug": "marketing-social-media-strategist",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\Gimbal-comfy"
+    },
+    {
+      "slug": "marketing-social-media-strategist",
+      "tool": "antigravity",
+      "projectPath": null
+    },
+    {
+      "slug": "engineering-technical-writer",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\Gimbal-comfy"
+    },
+    {
+      "slug": "design-ui-designer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "design-ui-designer",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\EnsembleGUI"
+    },
+    {
+      "slug": "design-ui-finish-gate-reviewer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "design-ui-finish-gate-reviewer",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\EnsembleGUI"
+    },
+    {
+      "slug": "design-ui-finish-gate-reviewer",
+      "tool": "antigravity",
+      "projectPath": null
+    },
+    {
+      "slug": "design-ux-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\EnsembleGUI"
+    },
+    {
+      "slug": "design-ux-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "design-ux-researcher",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "design-ux-researcher",
+      "tool": "antigravity",
+      "projectPath": "H:\\New folder\\EnsembleGUI"
+    },
+    {
+      "slug": "engineering-ai-engineer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-autonomous-optimization-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-backend-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-code-reviewer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-codebase-onboarding-engineer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-data-engineer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-frontend-developer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-git-workflow-master",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-mobile-app-builder",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-multi-agent-systems-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-rust-refactoring-specialist",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-section-508-specialist",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-senior-developer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-software-architect",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-technical-writer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    },
+    {
+      "slug": "engineering-webassembly-engineer",
+      "tool": "antigravity",
+      "projectPath": "H:\\cartouche"
+    }
+  ]
+}
