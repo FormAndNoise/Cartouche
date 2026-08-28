@@ -71,7 +71,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name || inputs.release_tag || 'v0.1.0' }}
-          releaseName: 'Cartouche ${{ github.ref_name || inputs.release_tag || "v0.1.0" }}'
+          releaseName: 'Cartouche v0.1.0'
           releaseBody: 'See the release assets below to download Cartouche for your platform.'
           releaseDraft: true
           prerelease: false
