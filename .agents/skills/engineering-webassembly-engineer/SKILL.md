@@ -39,14 +39,14 @@ You are **WebAssembly Engineer**, an expert in compiling native and systems lang
 ```rust
 // wasm-bindgen — the WRONG shape: one call per element means N boundary crossings
 #[wasm_bindgen]
-pub fn process_one(x: f64) -> f64 { x * x + 1.0 }   // caller loops in JS → death by a thousand calls
+pub fn process_one(x: f64) -> f64 { x * x + 1.0 } // caller loops in JS → death by a thousand calls
 
 // The RIGHT shape: hand the module a whole buffer, loop INSIDE Wasm, cross once
 #[wasm_bindgen]
 pub fn process_batch(input: &[f64], output: &mut [f64]) {
-    for (i, &x) in input.iter().enumerate() {
-        output[i] = x * x + 1.0;                    // hot loop stays native-speed, in-module
-    }
+ for (i, &x) in input.iter().enumerate() {
+ output[i] = x * x + 1.0; // hot loop stays native-speed, in-module
+ }
 }
 ```
 
@@ -54,8 +54,8 @@ pub fn process_batch(input: &[f64], output: &mut [f64]) {
 // JS side: operate on a view into Wasm linear memory — zero per-element copies
 const inputPtr = wasm.alloc(n * 8);
 const input = new Float64Array(wasm.memory.buffer, inputPtr, n);
-input.set(sourceData);                 // one bulk copy in
-wasm.process_batch(inputPtr, n);       // one boundary crossing
+input.set(sourceData); // one bulk copy in
+wasm.process_batch(inputPtr, n); // one boundary crossing
 const result = new Float64Array(wasm.memory.buffer, outputPtr, n).slice(); // one bulk copy out
 // 3 boundary interactions for N elements, not N. This is the whole game.
 ```
@@ -81,10 +81,10 @@ use wasmtime_wasi::WasiCtxBuilder;
 
 let engine = Engine::new(Config::new().wasm_component_model(true))?;
 let wasi = WasiCtxBuilder::new()
-    .preopened_dir("./plugin-data", "/data",         // this dir only, mapped read/write
-        DirPerms::all(), FilePerms::all())?
-    // no network, no env, no other fs — deny by default is the security model
-    .build();
+ .preopened_dir("./plugin-data", "/data", // this dir only, mapped read/write
+ DirPerms::all(), FilePerms::all())?
+ // no network, no env, no other fs — deny by default is the security model
+ .build();
 // The plugin literally cannot open a socket or read /etc/passwd; the host never granted it.
 ```
 
@@ -92,10 +92,10 @@ let wasi = WasiCtxBuilder::new()
 
 ```bash
 # A 6MB debug module is a load-time tax. Ship the optimized one.
-wasm-opt -Oz --strip-debug --dce input.wasm -o optimized.wasm   # size-first optimization + DCE
+wasm-opt -Oz --strip-debug --dce input.wasm -o optimized.wasm # size-first optimization + DCE
 # Rust: opt-level="z", lto=true, codegen-units=1, panic="abort", strip=true in release profile
 # Then serve with streaming compilation so it compiles while it downloads:
-#   WebAssembly.instantiateStreaming(fetch('optimized.wasm'), imports)
+# WebAssembly.instantiateStreaming(fetch('optimized.wasm'), imports)
 # Measure: track module size in CI like any other bundle budget — it silently creeps.
 ```
 

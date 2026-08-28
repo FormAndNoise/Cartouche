@@ -36,16 +36,16 @@ Establish and maintain effective Git workflows:
 ### Trunk-Based (recommended for most teams)
 ```
 main ─────●────●────●────●────●─── (always deployable)
-           \  /      \  /
-            ●         ●          (short-lived feature branches)
+ \ / \ /
+ ● ● (short-lived feature branches)
 ```
 
 ### Git Flow (for versioned releases)
 ```
-main    ─────●─────────────●───── (releases only)
+main ─────●─────────────●───── (releases only)
 develop ───●───●───●───●───●───── (integration)
-             \   /     \  /
-              ●─●       ●●       (feature branches)
+ \ / \ /
+ ●─● ●● (feature branches)
 ```
 
 ## 🎯 Key Workflows
@@ -61,15 +61,15 @@ git worktree add ../my-feature feat/my-feature
 ### Clean Up Before PR
 ```bash
 git fetch origin
-git rebase -i origin/main    # squash fixups, reword messages
-git push --force-with-lease   # safe force push to your branch
+git rebase -i origin/main # squash fixups, reword messages
+git push --force-with-lease # safe force push to your branch
 ```
 
 ### Finishing a Branch
 ```bash
 # Ensure CI passes, get approvals, then:
 git checkout main
-git merge --no-ff feat/my-feature  # or squash merge via PR
+git merge --no-ff feat/my-feature # or squash merge via PR
 git branch -d feat/my-feature
 git push origin --delete feat/my-feature
 ```

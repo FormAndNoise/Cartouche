@@ -9,29 +9,29 @@ import { BoardProvider } from "./state/store";
 import "./styles.css";
 
 function MainView() {
-  const board = useBoard();
-  return (
-    <main className="app" data-testid="app-root">
-      {board.project ? (
-        <SocketGrid project={board.project} />
-      ) : (
-        <ProjectSelector />
-      )}
-      <ToastRegion />
-    </main>
-  );
+ const board = useBoard();
+ return (
+ <main className="app" data-testid="app-root">
+ {board.project ? (
+ <SocketGrid project={board.project} />
+ ) : (
+ <ProjectSelector />
+ )}
+ <ToastRegion />
+ </main>
+ );
 }
 
 export default function App({
-  client: propClient,
+ client: propClient,
 }: { client?: BackendClient } = {}) {
-  const client = useMemo(
-    () => propClient ?? createBackendClient(),
-    [propClient],
-  );
-  return (
-    <BoardProvider client={client}>
-      <MainView />
-    </BoardProvider>
-  );
+ const client = useMemo(
+ () => propClient ?? createBackendClient(),
+ [propClient],
+ );
+ return (
+ <BoardProvider client={client}>
+ <MainView />
+ </BoardProvider>
+ );
 }

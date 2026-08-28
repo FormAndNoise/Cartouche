@@ -2,738 +2,738 @@
  * Socket detail panel (opened from a grid card).
  *
  * - Inline title/notes editing with blur/debounce persistence (AC-F03.4,
- *   no Save button).
+ * no Save button).
  * - Fixed-schema metadata editor: status (select), medium (text), tags (text),
- *   due_date (date) (US-F04).
+ * due_date (date) (US-F04).
  * - All candidate works as thumbnails with winner badges, winner select/clear,
- *   and per-work remove with confirmation for selected winners.
+ * and per-work remove with confirmation for selected winners.
  * - Lock toggle with unlock confirmation (AC-F07.3).
  * - Collapsible extracted text per work (US-F09).
  */
 import { useEffect, useRef, useState } from "react";
 import {
-  STATUS_OPTIONS,
-  type Socket,
-  type SocketMetadata,
-  type Work,
+ STATUS_OPTIONS,
+ type Socket,
+ type SocketMetadata,
+ type Work,
 } from "../api/types";
 import { useBoard, type AttachableFile } from "../state/context";
 import { Modal } from "./Modal";
 import { LICENSE_PRESETS } from "../lib/licensing";
 
 function DebouncedField({
-  value,
-  onCommit,
-  multiline,
-  disabled,
-  ariaLabel,
-  placeholder,
+ value,
+ onCommit,
+ multiline,
+ disabled,
+ ariaLabel,
+ placeholder,
 }: {
-  value: string;
-  onCommit: (v: string) => void;
-  multiline?: boolean;
-  disabled?: boolean;
-  ariaLabel: string;
-  placeholder?: string;
+ value: string;
+ onCommit: (v: string) => void;
+ multiline?: boolean;
+ disabled?: boolean;
+ ariaLabel: string;
+ placeholder?: string;
 }) {
-  const [draft, setDraft] = useState(value);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+ const [draft, setDraft] = useState(value);
+ const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => setDraft(value), [value]);
+ useEffect(() => setDraft(value), [value]);
 
-  const commit = (v: string) => {
-    if (timer.current) clearTimeout(timer.current);
-    if (v !== value) onCommit(v);
-  };
+ const commit = (v: string) => {
+ if (timer.current) clearTimeout(timer.current);
+ if (v !== value) onCommit(v);
+ };
 
-  const onChange = (v: string) => {
-    setDraft(v);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => commit(v), 600);
-  };
+ const onChange = (v: string) => {
+ setDraft(v);
+ if (timer.current) clearTimeout(timer.current);
+ timer.current = setTimeout(() => commit(v), 600);
+ };
 
-  const props = {
-    value: draft,
-    disabled,
-    "aria-label": ariaLabel,
-    placeholder,
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      onChange(e.target.value),
-    onBlur: () => commit(draft),
-  };
+ const props = {
+ value: draft,
+ disabled,
+ "aria-label": ariaLabel,
+ placeholder,
+ onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+ onChange(e.target.value),
+ onBlur: () => commit(draft),
+ };
 
-  return multiline ? <textarea {...props} rows={3} /> : <input {...props} />;
+ return multiline ? <textarea {...props} rows={3} /> : <input {...props} />;
 }
 
 function ExtractedTextSection({ work }: { work: Work }) {
-  if (
-    work.extracted_text_state === "unsupported" ||
-    work.extracted_text_state === "none"
-  ) {
-    return null;
-  }
-  if (work.extracted_text_state === "pending") {
-    return <span className="extract-unavailable">Extracting text…</span>;
-  }
-  if (work.extracted_text_state === "failed") {
-    return (
-      <span className="extract-unavailable">
-        Text unavailable for this document.
-      </span>
-    );
-  }
-  return (
-    <details className="extracted">
-      <summary>Extracted text</summary>
-      <pre>{work.extracted_text ?? ""}</pre>
-    </details>
-  );
+ if (
+ work.extracted_text_state === "unsupported" ||
+ work.extracted_text_state === "none"
+ ) {
+ return null;
+ }
+ if (work.extracted_text_state === "pending") {
+ return <span className="extract-unavailable">Extracting text…</span>;
+ }
+ if (work.extracted_text_state === "failed") {
+ return (
+ <span className="extract-unavailable">
+ Text unavailable for this document.
+ </span>
+ );
+ }
+ return (
+ <details className="extracted">
+ <summary>Extracted text</summary>
+ <pre>{work.extracted_text ?? ""}</pre>
+ </details>
+ );
 }
 
 export function SocketDetailPanel({
-  socket,
-  onClose,
+ socket,
+ onClose,
 }: {
-  socket: Socket;
-  onClose: () => void;
+ socket: Socket;
+ onClose: () => void;
 }) {
-  const board = useBoard();
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [confirmUnlock, setConfirmUnlock] = useState(false);
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
-  const [metaDraft, setMetaDraft] = useState<SocketMetadata>(socket.metadata);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+ const board = useBoard();
+ const panelRef = useRef<HTMLDivElement>(null);
+ const [confirmUnlock, setConfirmUnlock] = useState(false);
+ const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+ const [metaDraft, setMetaDraft] = useState<SocketMetadata>(socket.metadata);
+ const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => setMetaDraft(socket.metadata), [socket.metadata]);
-  useEffect(() => {
-    panelRef.current?.focus();
-  }, []);
+ useEffect(() => setMetaDraft(socket.metadata), [socket.metadata]);
+ useEffect(() => {
+ panelRef.current?.focus();
+ }, []);
 
-  const commitMeta = async (next: SocketMetadata) => {
-    setMetaDraft(next);
-    await board.updateSocketFields(socket.id, { metadata: next });
-  };
+ const commitMeta = async (next: SocketMetadata) => {
+ setMetaDraft(next);
+ await board.updateSocketFields(socket.id, { metadata: next });
+ };
 
-  const toggleLock = async () => {
-    if (socket.locked) {
-      setConfirmUnlock(true);
-    } else {
-      await board.setSocketLock(socket.id, true);
-    }
-  };
+ const toggleLock = async () => {
+ if (socket.locked) {
+ setConfirmUnlock(true);
+ } else {
+ await board.setSocketLock(socket.id, true);
+ }
+ };
 
-  const onBrowseClick = async () => {
-    if (socket.locked) {
-      board.pushToast(
-        "error",
-        `[LOCKED] Socket is locked — unlock it to attach files.`,
-      );
-      return;
-    }
-    try {
-      const w =
-        typeof window !== "undefined"
-          ? (window as unknown as { __TAURI_INTERNALS__?: unknown })
-          : undefined;
-      if (w?.__TAURI_INTERNALS__) {
-        const { open } = await import("@tauri-apps/plugin-dialog");
-        const selected = await open({
-          multiple: true,
-          filters: [
-            {
-              name: "Media and Documents",
-              extensions: [
-                "png",
-                "jpg",
-                "jpeg",
-                "webp",
-                "gif",
-                "bmp",
-                "tiff",
-                "svg",
-                "pdf",
-                "docx",
-                "txt",
-                "md",
-                "csv",
-                "json",
-              ],
-            },
-          ],
-        });
-        if (selected) {
-          const paths = Array.isArray(selected) ? selected : [selected];
-          if (paths.length > 0) {
-            const files: AttachableFile[] = paths.map((p) => ({
-              name: p.split(/[\\/]/).pop() || p,
-              blob: new Blob([]),
-              path: p,
-            }));
-            await board.attachFiles(socket.id, files);
-            return;
-          }
-        }
-      }
-    } catch {
-      /* fallback to standard file input */
-    }
-    fileInputRef.current?.click();
-  };
+ const onBrowseClick = async () => {
+ if (socket.locked) {
+ board.pushToast(
+ "error",
+ `[LOCKED] Socket is locked — unlock it to attach files.`,
+ );
+ return;
+ }
+ try {
+ const w =
+ typeof window !== "undefined"
+ ? (window as unknown as { __TAURI_INTERNALS__?: unknown })
+ : undefined;
+ if (w?.__TAURI_INTERNALS__) {
+ const { open } = await import("@tauri-apps/plugin-dialog");
+ const selected = await open({
+ multiple: true,
+ filters: [
+ {
+ name: "Media and Documents",
+ extensions: [
+ "png",
+ "jpg",
+ "jpeg",
+ "webp",
+ "gif",
+ "bmp",
+ "tiff",
+ "svg",
+ "pdf",
+ "docx",
+ "txt",
+ "md",
+ "csv",
+ "json",
+ ],
+ },
+ ],
+ });
+ if (selected) {
+ const paths = Array.isArray(selected) ? selected : [selected];
+ if (paths.length > 0) {
+ const files: AttachableFile[] = paths.map((p) => ({
+ name: p.split(/[\\/]/).pop() || p,
+ blob: new Blob([]),
+ path: p,
+ }));
+ await board.attachFiles(socket.id, files);
+ return;
+ }
+ }
+ }
+ } catch {
+ /* fallback to standard file input */
+ }
+ fileInputRef.current?.click();
+ };
 
-  const onBrowse = async (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    if (socket.locked) {
-      board.pushToast(
-        "error",
-        `[LOCKED] Socket is locked — unlock it to attach files.`,
-      );
-      return;
-    }
-    const files: AttachableFile[] = Array.from(list).map((f) => ({
-      name: f.name,
-      blob: f,
-      path: (f as unknown as { path?: string }).path || undefined,
-    }));
-    await board.attachFiles(socket.id, files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+ const onBrowse = async (list: FileList | null) => {
+ if (!list || list.length === 0) return;
+ if (socket.locked) {
+ board.pushToast(
+ "error",
+ `[LOCKED] Socket is locked — unlock it to attach files.`,
+ );
+ return;
+ }
+ const files: AttachableFile[] = Array.from(list).map((f) => ({
+ name: f.name,
+ blob: f,
+ path: (f as unknown as { path?: string }).path || undefined,
+ }));
+ await board.attachFiles(socket.id, files);
+ if (fileInputRef.current) fileInputRef.current.value = "";
+ };
 
-  const handlePanelDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (socket.locked) {
-      board.pushToast(
-        "error",
-        `[LOCKED] Socket is locked — unlock it to attach files.`,
-      );
-      return;
-    }
-    const files: AttachableFile[] = Array.from(e.dataTransfer.files).map(
-      (f) => ({
-        name: f.name,
-        blob: f,
-        path: (f as unknown as { path?: string }).path || undefined,
-      }),
-    );
-    if (files.length > 0) {
-      await board.attachFiles(socket.id, files);
-    }
-  };
+ const handlePanelDrop = async (e: React.DragEvent) => {
+ e.preventDefault();
+ e.stopPropagation();
+ if (socket.locked) {
+ board.pushToast(
+ "error",
+ `[LOCKED] Socket is locked — unlock it to attach files.`,
+ );
+ return;
+ }
+ const files: AttachableFile[] = Array.from(e.dataTransfer.files).map(
+ (f) => ({
+ name: f.name,
+ blob: f,
+ path: (f as unknown as { path?: string }).path || undefined,
+ }),
+ );
+ if (files.length > 0) {
+ await board.attachFiles(socket.id, files);
+ }
+ };
 
-  const removeWork = async (workId: string, force = false) => {
-    try {
-      await board.removeWork(socket.id, workId, force);
-      setConfirmRemove(null);
-    } catch {
-      /* handled by store */
-    }
-  };
+ const removeWork = async (workId: string, force = false) => {
+ try {
+ await board.removeWork(socket.id, workId, force);
+ setConfirmRemove(null);
+ } catch {
+ /* handled by store */
+ }
+ };
 
-  const attemptRemove = async (workId: string) => {
-    if (socket.locked) {
-      board.pushToast(
-        "error",
-        "[LOCKED] Socket is locked — cannot remove works.",
-      );
-      return;
-    }
-    if (workId === socket.selected_work_id) {
-      setConfirmRemove(workId);
-      return;
-    }
-    await removeWork(workId);
-  };
+ const attemptRemove = async (workId: string) => {
+ if (socket.locked) {
+ board.pushToast(
+ "error",
+ "[LOCKED] Socket is locked — cannot remove works.",
+ );
+ return;
+ }
+ if (workId === socket.selected_work_id) {
+ setConfirmRemove(workId);
+ return;
+ }
+ await removeWork(workId);
+ };
 
-  const sortedWorks = [...socket.works];
+ const sortedWorks = [...socket.works];
 
-  return (
-    <aside
-      className="detail-panel"
-      ref={panelRef}
-      tabIndex={-1}
-      role="dialog"
-      aria-label={`Socket ${socket.position + 1} details`}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={handlePanelDrop}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          onClose();
-        }
-      }}
-    >
-      <div className="panel-head">
-        <h2>Socket {socket.position + 1}</h2>
-        {socket.locked && (
-          <span className="badge" style={{ color: "var(--lock)" }}>
-            🔒 locked
-          </span>
-        )}
-        <span className="grow" />
-        <button onClick={toggleLock} aria-pressed={socket.locked}>
-          {socket.locked ? "Unlock" : "Lock"}
-        </button>
-        <button onClick={onClose} aria-label="Close details">
-          ✕
-        </button>
-      </div>
+ return (
+ <aside
+ className="detail-panel"
+ ref={panelRef}
+ tabIndex={-1}
+ role="dialog"
+ aria-label={`Socket ${socket.position + 1} details`}
+ onDragOver={(e) => e.preventDefault()}
+ onDrop={handlePanelDrop}
+ onKeyDown={(e) => {
+ if (e.key === "Escape") {
+ e.preventDefault();
+ onClose();
+ }
+ }}
+ >
+ <div className="panel-head">
+ <h2>Socket {socket.position + 1}</h2>
+ {socket.locked && (
+ <span className="badge" style={{ color: "var(--lock)" }}>
+ 🔒 locked
+ </span>
+ )}
+ <span className="grow" />
+ <button onClick={toggleLock} aria-pressed={socket.locked}>
+ {socket.locked ? "Unlock" : "Lock"}
+ </button>
+ <button onClick={onClose} aria-label="Close details">
+ ✕
+ </button>
+ </div>
 
-      {socket.locked && (
-        <div className="locked-note" role="note">
-          This socket is locked. Editing, attaching, removing works, and winner
-          changes are disabled until you unlock it.
-        </div>
-      )}
+ {socket.locked && (
+ <div className="locked-note" role="note">
+ This socket is locked. Editing, attaching, removing works, and winner
+ changes are disabled until you unlock it.
+ </div>
+ )}
 
-      <section>
-        <h3>Title</h3>
-        <DebouncedField
-          value={socket.title}
-          onCommit={(v) => board.updateSocketFields(socket.id, { title: v })}
-          disabled={socket.locked}
-          ariaLabel={`Title for socket ${socket.position + 1}`}
-          placeholder="Untitled socket"
-        />
-      </section>
+ <section>
+ <h3>Title</h3>
+ <DebouncedField
+ value={socket.title}
+ onCommit={(v) => board.updateSocketFields(socket.id, { title: v })}
+ disabled={socket.locked}
+ ariaLabel={`Title for socket ${socket.position + 1}`}
+ placeholder="Untitled socket"
+ />
+ </section>
 
-      <section>
-        <h3>Notes</h3>
-        <DebouncedField
-          value={socket.notes}
-          onCommit={(v) => board.updateSocketFields(socket.id, { notes: v })}
-          multiline
-          disabled={socket.locked}
-          ariaLabel={`Notes for socket ${socket.position + 1}`}
-          placeholder="Notes about this deliverable…"
-        />
-      </section>
+ <section>
+ <h3>Notes</h3>
+ <DebouncedField
+ value={socket.notes}
+ onCommit={(v) => board.updateSocketFields(socket.id, { notes: v })}
+ multiline
+ disabled={socket.locked}
+ ariaLabel={`Notes for socket ${socket.position + 1}`}
+ placeholder="Notes about this deliverable…"
+ />
+ </section>
 
-      <section>
-        <h3>Metadata</h3>
-        <label className="field">
-          <span>Status</span>
-          <select
-            value={metaDraft.status}
-            disabled={socket.locked}
-            aria-label="Status"
-            onChange={(e) =>
-              commitMeta({
-                ...metaDraft,
-                status: e.target.value as SocketMetadata["status"],
-              })
-            }
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Medium</span>
-          <input
-            value={metaDraft.medium}
-            disabled={socket.locked}
-            aria-label="Medium"
-            placeholder="e.g. digital painting, ink"
-            onChange={(e) =>
-              setMetaDraft({ ...metaDraft, medium: e.target.value })
-            }
-            onBlur={(e) =>
-              e.target.value !== socket.metadata.medium &&
-              commitMeta({ ...metaDraft, medium: e.target.value })
-            }
-          />
-        </label>
-        <label className="field">
-          <span>Tags (comma-separated)</span>
-          <input
-            value={metaDraft.tags}
-            disabled={socket.locked}
-            aria-label="Tags"
-            placeholder="major-arcana, night scene"
-            onChange={(e) =>
-              setMetaDraft({ ...metaDraft, tags: e.target.value })
-            }
-            onBlur={(e) =>
-              e.target.value !== socket.metadata.tags &&
-              commitMeta({ ...metaDraft, tags: e.target.value })
-            }
-          />
-        </label>
-        <label className="field">
-          <span>Due date</span>
-          <input
-            type="date"
-            value={metaDraft.due_date ?? ""}
-            disabled={socket.locked}
-            aria-label="Due date"
-            onChange={(e) =>
-              setMetaDraft({ ...metaDraft, due_date: e.target.value || null })
-            }
-            onBlur={(e) => {
-              const v = e.target.value || null;
-              if (v !== socket.metadata.due_date)
-                commitMeta({ ...metaDraft, due_date: v });
-            }}
-          />
-        </label>
-        <div className="field">
-          <div className="field-header-row">
-            <span>Artist / Creator (Card Override)</span>
-            {metaDraft.author_override?.trim() && (
-              <button
-                type="button"
-                className="btn-micro-link"
-                disabled={socket.locked}
-                onClick={() => {
-                  setMetaDraft({ ...metaDraft, author_override: "" });
-                  commitMeta({ ...metaDraft, author_override: "" });
-                }}
-              >
-                Reset to Deck Author
-              </button>
-            )}
-          </div>
-          <input
-            value={metaDraft.author_override ?? ""}
-            disabled={socket.locked}
-            aria-label="Artist override"
-            placeholder={
-              board.project?.metadata?.author
-                ? `Inherited: ${board.project.metadata.author}`
-                : "e.g. Guest Illustrator"
-            }
-            onChange={(e) =>
-              setMetaDraft({ ...metaDraft, author_override: e.target.value })
-            }
-            onBlur={(e) =>
-              e.target.value !== (socket.metadata.author_override ?? "") &&
-              commitMeta({ ...metaDraft, author_override: e.target.value })
-            }
-          />
-        </div>
+ <section>
+ <h3>Metadata</h3>
+ <label className="field">
+ <span>Status</span>
+ <select
+ value={metaDraft.status}
+ disabled={socket.locked}
+ aria-label="Status"
+ onChange={(e) =>
+ commitMeta({
+ ...metaDraft,
+ status: e.target.value as SocketMetadata["status"],
+ })
+ }
+ >
+ {STATUS_OPTIONS.map((o) => (
+ <option key={o.value} value={o.value}>
+ {o.label}
+ </option>
+ ))}
+ </select>
+ </label>
+ <label className="field">
+ <span>Medium</span>
+ <input
+ value={metaDraft.medium}
+ disabled={socket.locked}
+ aria-label="Medium"
+ placeholder="e.g. digital painting, ink"
+ onChange={(e) =>
+ setMetaDraft({ ...metaDraft, medium: e.target.value })
+ }
+ onBlur={(e) =>
+ e.target.value !== socket.metadata.medium &&
+ commitMeta({ ...metaDraft, medium: e.target.value })
+ }
+ />
+ </label>
+ <label className="field">
+ <span>Tags (comma-separated)</span>
+ <input
+ value={metaDraft.tags}
+ disabled={socket.locked}
+ aria-label="Tags"
+ placeholder="major-arcana, night scene"
+ onChange={(e) =>
+ setMetaDraft({ ...metaDraft, tags: e.target.value })
+ }
+ onBlur={(e) =>
+ e.target.value !== socket.metadata.tags &&
+ commitMeta({ ...metaDraft, tags: e.target.value })
+ }
+ />
+ </label>
+ <label className="field">
+ <span>Due date</span>
+ <input
+ type="date"
+ value={metaDraft.due_date ?? ""}
+ disabled={socket.locked}
+ aria-label="Due date"
+ onChange={(e) =>
+ setMetaDraft({ ...metaDraft, due_date: e.target.value || null })
+ }
+ onBlur={(e) => {
+ const v = e.target.value || null;
+ if (v !== socket.metadata.due_date)
+ commitMeta({ ...metaDraft, due_date: v });
+ }}
+ />
+ </label>
+ <div className="field">
+ <div className="field-header-row">
+ <span>Artist / Creator (Card Override)</span>
+ {metaDraft.author_override?.trim() && (
+ <button
+ type="button"
+ className="btn-micro-link"
+ disabled={socket.locked}
+ onClick={() => {
+ setMetaDraft({ ...metaDraft, author_override: "" });
+ commitMeta({ ...metaDraft, author_override: "" });
+ }}
+ >
+ Reset to Deck Author
+ </button>
+ )}
+ </div>
+ <input
+ value={metaDraft.author_override ?? ""}
+ disabled={socket.locked}
+ aria-label="Artist override"
+ placeholder={
+ board.project?.metadata?.author
+ ? `Inherited: ${board.project.metadata.author}`
+ : "e.g. Guest Illustrator"
+ }
+ onChange={(e) =>
+ setMetaDraft({ ...metaDraft, author_override: e.target.value })
+ }
+ onBlur={(e) =>
+ e.target.value !== (socket.metadata.author_override ?? "") &&
+ commitMeta({ ...metaDraft, author_override: e.target.value })
+ }
+ />
+ </div>
 
-        <div className="field">
-          <div className="field-header-row">
-            <span>License (Card Override)</span>
-            {metaDraft.license_override?.trim() && (
-              <button
-                type="button"
-                className="btn-micro-link"
-                disabled={socket.locked}
-                onClick={() => {
-                  setMetaDraft({ ...metaDraft, license_override: "" });
-                  commitMeta({ ...metaDraft, license_override: "" });
-                }}
-              >
-                Reset to Deck License
-              </button>
-            )}
-          </div>
-          <div className="license-input-group">
-            <select
-              aria-label="License Preset for Card"
-              disabled={socket.locked}
-              value={
-                LICENSE_PRESETS.some(
-                  (p) =>
-                    p.label === metaDraft.license_override ||
-                    p.spdxOrPlusCode === metaDraft.license_override,
-                )
-                  ? metaDraft.license_override
-                  : "custom"
-              }
-              onChange={(e) => {
-                if (e.target.value !== "custom") {
-                  setMetaDraft({
-                    ...metaDraft,
-                    license_override: e.target.value,
-                  });
-                  commitMeta({
-                    ...metaDraft,
-                    license_override: e.target.value,
-                  });
-                }
-              }}
-            >
-              <option value="custom">Preset or Custom…</option>
-              <optgroup label="Commercial & Publishing">
-                <option value="All Rights Reserved">All Rights Reserved</option>
-                <option value="Commercial Print Deck — Exclusive 1st Edition">
-                  Commercial Print Deck — Exclusive 1st Edition
-                </option>
-                <option value="Commercial Print & Digital — Non-Exclusive">
-                  Commercial Print & Digital — Non-Exclusive
-                </option>
-                <option value="Work for Hire / Full Rights Buyout">
-                  Work for Hire / Full Rights Buyout
-                </option>
-              </optgroup>
-              <optgroup label="PLUS Universal Codes (IPTC / ISO 19566-5)">
-                <option value="PLUS-LIC-DECK-EXCL-1ST">
-                  PLUS: Card Deck (Exclusive 1st)
-                </option>
-                <option value="PLUS-LIC-DECK-NONEXCL">
-                  PLUS: Card Deck (Non-Exclusive)
-                </option>
-              </optgroup>
-              <optgroup label="Creative Commons">
-                <option value="CC-BY-4.0">CC BY 4.0</option>
-                <option value="CC-BY-NC-4.0">CC BY-NC 4.0</option>
-                <option value="CC-BY-NC-SA-4.0">CC BY-NC-SA 4.0</option>
-                <option value="CC0-1.0">CC0 1.0 (Public Domain)</option>
-              </optgroup>
-            </select>
-            <input
-              value={metaDraft.license_override ?? ""}
-              disabled={socket.locked}
-              aria-label="License override"
-              placeholder={
-                board.project?.metadata?.license
-                  ? `Inherited: ${board.project.metadata.license}`
-                  : "e.g. CC-BY-NC 4.0"
-              }
-              onChange={(e) =>
-                setMetaDraft({ ...metaDraft, license_override: e.target.value })
-              }
-              onBlur={(e) =>
-                e.target.value !== (socket.metadata.license_override ?? "") &&
-                commitMeta({ ...metaDraft, license_override: e.target.value })
-              }
-            />
-          </div>
-        </div>
-      </section>
+ <div className="field">
+ <div className="field-header-row">
+ <span>License (Card Override)</span>
+ {metaDraft.license_override?.trim() && (
+ <button
+ type="button"
+ className="btn-micro-link"
+ disabled={socket.locked}
+ onClick={() => {
+ setMetaDraft({ ...metaDraft, license_override: "" });
+ commitMeta({ ...metaDraft, license_override: "" });
+ }}
+ >
+ Reset to Deck License
+ </button>
+ )}
+ </div>
+ <div className="license-input-group">
+ <select
+ aria-label="License Preset for Card"
+ disabled={socket.locked}
+ value={
+ LICENSE_PRESETS.some(
+ (p) =>
+ p.label === metaDraft.license_override ||
+ p.spdxOrPlusCode === metaDraft.license_override,
+ )
+ ? metaDraft.license_override
+ : "custom"
+ }
+ onChange={(e) => {
+ if (e.target.value !== "custom") {
+ setMetaDraft({
+ ...metaDraft,
+ license_override: e.target.value,
+ });
+ commitMeta({
+ ...metaDraft,
+ license_override: e.target.value,
+ });
+ }
+ }}
+ >
+ <option value="custom">Preset or Custom…</option>
+ <optgroup label="Commercial & Publishing">
+ <option value="All Rights Reserved">All Rights Reserved</option>
+ <option value="Commercial Print Deck — Exclusive 1st Edition">
+ Commercial Print Deck — Exclusive 1st Edition
+ </option>
+ <option value="Commercial Print & Digital — Non-Exclusive">
+ Commercial Print & Digital — Non-Exclusive
+ </option>
+ <option value="Work for Hire / Full Rights Buyout">
+ Work for Hire / Full Rights Buyout
+ </option>
+ </optgroup>
+ <optgroup label="PLUS Universal Codes (IPTC / ISO 19566-5)">
+ <option value="PLUS-LIC-DECK-EXCL-1ST">
+ PLUS: Card Deck (Exclusive 1st)
+ </option>
+ <option value="PLUS-LIC-DECK-NONEXCL">
+ PLUS: Card Deck (Non-Exclusive)
+ </option>
+ </optgroup>
+ <optgroup label="Creative Commons">
+ <option value="CC-BY-4.0">CC BY 4.0</option>
+ <option value="CC-BY-NC-4.0">CC BY-NC 4.0</option>
+ <option value="CC-BY-NC-SA-4.0">CC BY-NC-SA 4.0</option>
+ <option value="CC0-1.0">CC0 1.0 (Public Domain)</option>
+ </optgroup>
+ </select>
+ <input
+ value={metaDraft.license_override ?? ""}
+ disabled={socket.locked}
+ aria-label="License override"
+ placeholder={
+ board.project?.metadata?.license
+ ? `Inherited: ${board.project.metadata.license}`
+ : "e.g. CC-BY-NC 4.0"
+ }
+ onChange={(e) =>
+ setMetaDraft({ ...metaDraft, license_override: e.target.value })
+ }
+ onBlur={(e) =>
+ e.target.value !== (socket.metadata.license_override ?? "") &&
+ commitMeta({ ...metaDraft, license_override: e.target.value })
+ }
+ />
+ </div>
+ </div>
+ </section>
 
-      <section>
-        <h3>Works ({socket.works.length})</h3>
-        <div className="dropzone-row" style={{ marginBottom: 10 }}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            style={{ display: "none" }}
-            onChange={(e) => onBrowse(e.target.files)}
-            aria-label="Choose files to attach"
-          />
-          <button onClick={onBrowseClick} disabled={socket.locked}>
-            Browse files…
-          </button>
-        </div>
+ <section>
+ <h3>Works ({socket.works.length})</h3>
+ <div className="dropzone-row" style={{ marginBottom: 10 }}>
+ <input
+ ref={fileInputRef}
+ type="file"
+ multiple
+ style={{ display: "none" }}
+ onChange={(e) => onBrowse(e.target.files)}
+ aria-label="Choose files to attach"
+ />
+ <button onClick={onBrowseClick} disabled={socket.locked}>
+ Browse files…
+ </button>
+ </div>
 
-        {socket.works.length === 0 ? (
-          <p className="extract-unavailable">
-            No works attached yet. Drop files on the card or browse.
-          </p>
-        ) : (
-          <div className="work-list">
-            {sortedWorks.map((w) => {
-              const isWinner = socket.selected_work_id === w.id;
-              return (
-                <div
-                  key={w.id}
-                  className={`work-item ${isWinner ? "winner" : ""}`}
-                >
-                  <div className="work-thumb">
-                    {w.preview_uri ? (
-                      <img src={w.preview_uri} alt={w.title} />
-                    ) : w.preview_state === "pending" ? (
-                      <span
-                        className="spinner"
-                        aria-label="Generating preview"
-                      />
-                    ) : w.media_kind === "image" ? (
-                      <span aria-label="Image preview unavailable">🖼️</span>
-                    ) : (
-                      <span aria-label={`${w.media_kind} document`}>📄</span>
-                    )}
-                  </div>
-                  <div className="work-info">
-                    <span className="name" title={w.title}>
-                      {w.title}
-                      {isWinner && (
-                        <span
-                          className="badge winner"
-                          style={{ marginLeft: 6 }}
-                        >
-                          ✓ winner
-                        </span>
-                      )}
-                    </span>
-                    <span className="meta-line">
-                      {w.media_kind} · {(w.byte_size / 1024).toFixed(1)} KB ·{" "}
-                      {w.sha256.slice(0, 12)}…
-                    </span>
-                    <div className="work-actions">
-                      {isWinner ? (
-                        <button
-                          onClick={() => board.selectWinner(socket.id, null)}
-                          disabled={socket.locked}
-                        >
-                          Clear winner
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => board.selectWinner(socket.id, w.id)}
-                          disabled={socket.locked}
-                        >
-                          Select as winner
-                        </button>
-                      )}
-                      <button
-                        onClick={() =>
-                          board.openInExternalEditor(socket.id, w.id)
-                        }
-                        title="Open file in OS default editor (Photoshop, Affinity, GIMP, Paint...)"
-                      >
-                        🖌 Edit in External App…
-                      </button>
-                      <button
-                        onClick={() => board.syncExternalEdits(socket.id, w.id)}
-                        title="Detect file edits on disk and commit cryptographic SHA-256 state into forensic ledger"
-                      >
-                        🔄 Sync Changes
-                      </button>
-                      <button
-                        className="danger"
-                        onClick={() => attemptRemove(w.id)}
-                        disabled={socket.locked}
-                        title={
-                          socket.locked
-                            ? "Socket is locked — remove is disabled"
-                            : undefined
-                        }
-                      >
-                        Remove
-                      </button>
-                    </div>
-                    <ExtractedTextSection work={w} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+ {socket.works.length === 0 ? (
+ <p className="extract-unavailable">
+ No works attached yet. Drop files on the card or browse.
+ </p>
+ ) : (
+ <div className="work-list">
+ {sortedWorks.map((w) => {
+ const isWinner = socket.selected_work_id === w.id;
+ return (
+ <div
+ key={w.id}
+ className={`work-item ${isWinner ? "winner" : ""}`}
+ >
+ <div className="work-thumb">
+ {w.preview_uri ? (
+ <img src={w.preview_uri} alt={w.title} />
+ ) : w.preview_state === "pending" ? (
+ <span
+ className="spinner"
+ aria-label="Generating preview"
+ />
+ ) : w.media_kind === "image" ? (
+ <span aria-label="Image preview unavailable">🖼️</span>
+ ) : (
+ <span aria-label={`${w.media_kind} document`}>📄</span>
+ )}
+ </div>
+ <div className="work-info">
+ <span className="name" title={w.title}>
+ {w.title}
+ {isWinner && (
+ <span
+ className="badge winner"
+ style={{ marginLeft: 6 }}
+ >
+ ✓ winner
+ </span>
+ )}
+ </span>
+ <span className="meta-line">
+ {w.media_kind} · {(w.byte_size / 1024).toFixed(1)} KB ·{" "}
+ {w.sha256.slice(0, 12)}…
+ </span>
+ <div className="work-actions">
+ {isWinner ? (
+ <button
+ onClick={() => board.selectWinner(socket.id, null)}
+ disabled={socket.locked}
+ >
+ Clear winner
+ </button>
+ ) : (
+ <button
+ onClick={() => board.selectWinner(socket.id, w.id)}
+ disabled={socket.locked}
+ >
+ Select as winner
+ </button>
+ )}
+ <button
+ onClick={() =>
+ board.openInExternalEditor(socket.id, w.id)
+ }
+ title="Open file in OS default editor (Photoshop, Affinity, GIMP, Paint...)"
+ >
+ 🖌 Edit in External App…
+ </button>
+ <button
+ onClick={() => board.syncExternalEdits(socket.id, w.id)}
+ title="Detect file edits on disk and commit cryptographic SHA-256 state into forensic ledger"
+ >
+ 🔄 Sync Changes
+ </button>
+ <button
+ className="danger"
+ onClick={() => attemptRemove(w.id)}
+ disabled={socket.locked}
+ title={
+ socket.locked
+ ? "Socket is locked — remove is disabled"
+ : undefined
+ }
+ >
+ Remove
+ </button>
+ </div>
+ <ExtractedTextSection work={w} />
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </section>
 
-      {/* Forensic Provenance & Legal Chain of Custody */}
-      <section className="provenance-section">
-        <h3>Forensic Provenance & Legal Chain of Custody</h3>
-        <p className="provenance-intro">
-          Cryptographically hashed iteration history for copyright registration
-          and legal provenance defense.
-        </p>
+ {/* Forensic Provenance & Legal Chain of Custody */}
+ <section className="provenance-section">
+ <h3>Forensic Provenance & Legal Chain of Custody</h3>
+ <p className="provenance-intro">
+ Cryptographically hashed iteration history for copyright registration
+ and legal provenance defense.
+ </p>
 
-        {socket.metadata.provenance_ledger &&
-        socket.metadata.provenance_ledger.length > 0 ? (
-          <div className="provenance-timeline">
-            {socket.metadata.provenance_ledger.map((entry, idx) => (
-              <div key={entry.id || idx} className="provenance-entry">
-                <div className="provenance-entry-header">
-                  <span className="provenance-event-badge">
-                    {entry.event.replace(/_/g, " ")}
-                  </span>
-                  <span className="provenance-time">
-                    {entry.timestamp.replace("T", " ").replace("Z", " UTC")}
-                  </span>
-                </div>
-                <div className="provenance-entry-body">
-                  <div className="provenance-hash-row">
-                    <span className="provenance-hash-label">SHA-256:</span>
-                    <code className="provenance-hash" title={entry.sha256_hash}>
-                      {entry.sha256_hash}
-                    </code>
-                  </div>
-                  {entry.previous_sha256 && (
-                    <div className="provenance-hash-row faint">
-                      <span className="provenance-hash-label">Prior Hash:</span>
-                      <code
-                        className="provenance-hash"
-                        title={entry.previous_sha256}
-                      >
-                        {entry.previous_sha256}
-                      </code>
-                    </div>
-                  )}
-                  <div className="provenance-details">
-                    <span>File: {entry.asset_filename}</span>
-                    <span>Size: {(entry.byte_size / 1024).toFixed(1)} KB</span>
-                    {entry.byte_size_delta !== undefined && (
-                      <span className="delta">
-                        Δ{" "}
-                        {entry.byte_size_delta >= 0
-                          ? `+${entry.byte_size_delta}`
-                          : entry.byte_size_delta}{" "}
-                        B
-                      </span>
-                    )}
-                  </div>
-                  {entry.notes && (
-                    <p className="provenance-notes">{entry.notes}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="provenance-empty">
-            <span>⚖ No external edit sessions recorded yet.</span>
-            <p>
-              When you open an image in an external editor (Photoshop, Affinity,
-              GIMP) and save changes, Cartouche automatically commits a
-              cryptographic SHA-256 state stamp to the .crtch bundle.
-            </p>
-          </div>
-        )}
-      </section>
+ {socket.metadata.provenance_ledger &&
+ socket.metadata.provenance_ledger.length > 0 ? (
+ <div className="provenance-timeline">
+ {socket.metadata.provenance_ledger.map((entry, idx) => (
+ <div key={entry.id || idx} className="provenance-entry">
+ <div className="provenance-entry-header">
+ <span className="provenance-event-badge">
+ {entry.event.replace(/_/g, " ")}
+ </span>
+ <span className="provenance-time">
+ {entry.timestamp.replace("T", " ").replace("Z", " UTC")}
+ </span>
+ </div>
+ <div className="provenance-entry-body">
+ <div className="provenance-hash-row">
+ <span className="provenance-hash-label">SHA-256:</span>
+ <code className="provenance-hash" title={entry.sha256_hash}>
+ {entry.sha256_hash}
+ </code>
+ </div>
+ {entry.previous_sha256 && (
+ <div className="provenance-hash-row faint">
+ <span className="provenance-hash-label">Prior Hash:</span>
+ <code
+ className="provenance-hash"
+ title={entry.previous_sha256}
+ >
+ {entry.previous_sha256}
+ </code>
+ </div>
+ )}
+ <div className="provenance-details">
+ <span>File: {entry.asset_filename}</span>
+ <span>Size: {(entry.byte_size / 1024).toFixed(1)} KB</span>
+ {entry.byte_size_delta !== undefined && (
+ <span className="delta">
+ Δ{" "}
+ {entry.byte_size_delta >= 0
+ ? `+${entry.byte_size_delta}`
+ : entry.byte_size_delta}{" "}
+ B
+ </span>
+ )}
+ </div>
+ {entry.notes && (
+ <p className="provenance-notes">{entry.notes}</p>
+ )}
+ </div>
+ </div>
+ ))}
+ </div>
+ ) : (
+ <div className="provenance-empty">
+ <span>⚖ No external edit sessions recorded yet.</span>
+ <p>
+ When you open an image in an external editor (Photoshop, Affinity,
+ GIMP) and save changes, Cartouche automatically commits a
+ cryptographic SHA-256 state stamp to the .crtch bundle.
+ </p>
+ </div>
+ )}
+ </section>
 
-      {confirmUnlock && (
-        <Modal
-          title="Unlock this socket?"
-          onClose={() => setConfirmUnlock(false)}
-        >
-          <p>
-            Unlocking removes delete protection from socket{" "}
-            {socket.position + 1}. Works can be removed and fields edited again.
-            Continue?
-          </p>
-          <div className="modal-actions">
-            <button onClick={() => setConfirmUnlock(false)}>Keep locked</button>
-            <button
-              className="danger"
-              onClick={async () => {
-                setConfirmUnlock(false);
-                await board.setSocketLock(socket.id, false);
-              }}
-            >
-              Unlock
-            </button>
-          </div>
-        </Modal>
-      )}
+ {confirmUnlock && (
+ <Modal
+ title="Unlock this socket?"
+ onClose={() => setConfirmUnlock(false)}
+ >
+ <p>
+ Unlocking removes delete protection from socket{" "}
+ {socket.position + 1}. Works can be removed and fields edited again.
+ Continue?
+ </p>
+ <div className="modal-actions">
+ <button onClick={() => setConfirmUnlock(false)}>Keep locked</button>
+ <button
+ className="danger"
+ onClick={async () => {
+ setConfirmUnlock(false);
+ await board.setSocketLock(socket.id, false);
+ }}
+ >
+ Unlock
+ </button>
+ </div>
+ </Modal>
+ )}
 
-      {confirmRemove && (
-        <Modal
-          title="Remove the winning work?"
-          onClose={() => setConfirmRemove(null)}
-        >
-          <p>
-            This work is currently selected as the winner. Removing it will
-            clear the winner selection. Continue?
-          </p>
-          <div className="modal-actions">
-            <button onClick={() => setConfirmRemove(null)}>Cancel</button>
-            <button
-              className="danger"
-              onClick={() => removeWork(confirmRemove, true)}
-            >
-              Remove winner
-            </button>
-          </div>
-        </Modal>
-      )}
-    </aside>
-  );
+ {confirmRemove && (
+ <Modal
+ title="Remove the winning work?"
+ onClose={() => setConfirmRemove(null)}
+ >
+ <p>
+ This work is currently selected as the winner. Removing it will
+ clear the winner selection. Continue?
+ </p>
+ <div className="modal-actions">
+ <button onClick={() => setConfirmRemove(null)}>Cancel</button>
+ <button
+ className="danger"
+ onClick={() => removeWork(confirmRemove, true)}
+ >
+ Remove winner
+ </button>
+ </div>
+ </Modal>
+ )}
+ </aside>
+ );
 }

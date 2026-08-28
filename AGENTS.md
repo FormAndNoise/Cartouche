@@ -7,15 +7,15 @@ Local-first desktop app for visual artists managing multi-deliverable card and t
 - Accent: Slate-Blue (`#3F6E8C` / Dark: `#6FA0BE`)
 - Job Line: *"Local workspace to stage, audition, and lock artwork into ordered deliverable grids."*
 - Symbol: 24×24u, 1.75u stroke, 3×2 card slot grid with 1 solid locked state pip.
-- Suite Model: Loose Endorsed Family (Form & Noise Atelier). Standard canvas: Accent + Ink (#141414) + Ground (Paper #F6F1EA / Void #0B0B0B). Space Grotesk / Inter / IBM Plex Mono.
+- Suite Model: Loose Endorsed Family (Form & Noise). Standard canvas: Accent + Ink (#141414) + Ground (Paper #F6F1EA / Void #0B0B0B). Space Grotesk / Inter / IBM Plex Mono.
 
 ## Getting Started
 
 ```bash
-make install   # pnpm install + cargo fetch
+make install # pnpm install + cargo fetch
 make dev-tauri # full desktop app (Tauri + Vite, hot reload)
-make test      # frontend (Vitest) + backend (cargo test)
-make check     # install + lint + test + build (CI-equivalent)
+make test # frontend (Vitest) + backend (cargo test)
+make check # install + lint + test + build (CI-equivalent)
 ```
 
 Prerequisites: Node.js >= 20, pnpm >= 9, Rust stable, Tauri CLI 2.x (`cargo install tauri-cli --version "^2" --locked`).
@@ -26,24 +26,24 @@ This is a **git worktree monorepo**. The primary development worktree is `.workt
 
 ```
 .worktrees/t_99bad544_new/
-├── src/                  # React/TypeScript frontend (Vite)
-│   ├── App.tsx           # Root component
-│   ├── main.tsx          # Vite entry point
-│   ├── lib/api.ts        # Tauri IPC re-exports
-│   ├── components/       # (empty — scaffolded, not yet built)
-│   └── __tests__/        # Vitest + React Testing Library
-├── src-tauri/            # Rust/Tauri backend
-│   ├── src/
-│   │   ├── lib.rs        # Tauri builder + IPC commands
-│   │   └── main.rs       # Binary entry (re-exports lib::run)
-│   ├── migrations/       # (empty — schema not yet added)
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── Makefile              # install/build/test/lint/dev
+├── src/ # React/TypeScript frontend (Vite)
+│ ├── App.tsx # Root component
+│ ├── main.tsx # Vite entry point
+│ ├── lib/api.ts # Tauri IPC re-exports
+│ ├── components/ # (empty — scaffolded, not yet built)
+│ └── __tests__/ # Vitest + React Testing Library
+├── src-tauri/ # Rust/Tauri backend
+│ ├── src/
+│ │ ├── lib.rs # Tauri builder + IPC commands
+│ │ └── main.rs # Binary entry (re-exports lib::run)
+│ ├── migrations/ # (empty — schema not yet added)
+│ ├── Cargo.toml
+│ └── tauri.conf.json
+├── Makefile # install/build/test/lint/dev
 ├── package.json
-├── BUILD_PLAN.md         # Component inventory + milestone sequence
-├── REQUIREMENTS.md       # User stories + acceptance criteria
-└── ARCHITECTURE.md       # Technical architecture + data model
+├── BUILD_PLAN.md # Component inventory + milestone sequence
+├── REQUIREMENTS.md # User stories + acceptance criteria
+└── ARCHITECTURE.md # Technical architecture + data model
 ```
 
 **Other worktrees with significant code:**

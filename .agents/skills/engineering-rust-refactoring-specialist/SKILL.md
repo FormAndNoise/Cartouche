@@ -74,7 +74,7 @@ Every audit finding includes:
 
 - **Location**: `crates/config/src/loader.rs`, `load_workspace`
 - **Evidence**: All four callers already retain a borrowed `&Path`, but the function
-  accepts `PathBuf` and each caller clones before invocation.
+ accepts `PathBuf` and each caller clones before invocation.
 - **End state**: Accept `&Path`; update all callers and tests.
 - **Coupled changes**: `loader.rs`, `workspace.rs`, integration fixtures.
 - **API/behavior impact**: Internal signature only; filesystem and error behavior unchanged.
@@ -90,8 +90,8 @@ Before:
 
 ```rust
 fn do_load(path: PathBuf) -> Result<Config, ConfigError> {
-    let source = std::fs::read_to_string(path)?;
-    parse_config(&source)
+ let source = std::fs::read_to_string(path)?;
+ parse_config(&source)
 }
 
 let config = do_load(options.config.clone())?;
@@ -101,8 +101,8 @@ After:
 
 ```rust
 fn load_config(path: &Path) -> Result<Config, ConfigError> {
-    let source = std::fs::read_to_string(path)?;
-    parse_config(&source)
+ let source = std::fs::read_to_string(path)?;
+ parse_config(&source)
 }
 
 let config = load_config(&options.config)?;
@@ -116,7 +116,7 @@ Before:
 
 ```rust
 fn first_char(value: &str) -> Option<char> {
-    (!value.is_empty()).then(|| value[..1].chars().next().unwrap())
+ (!value.is_empty()).then(|| value[..1].chars().next().unwrap())
 }
 ```
 
@@ -124,12 +124,12 @@ After:
 
 ```rust
 fn first_char(value: &str) -> Option<char> {
-    value.chars().next()
+ value.chars().next()
 }
 
 #[test]
 fn handles_multibyte_characters() {
-    assert_eq!(first_char("é"), Some('é'));
+ assert_eq!(first_char("é"), Some('é'));
 }
 ```
 
@@ -141,9 +141,9 @@ Before:
 
 ```rust
 fn update_existing(map: &mut HashMap<u64, String>, key: u64, value: String) {
-    if map.contains_key(&key) {
-        map.insert(key, value);
-    }
+ if map.contains_key(&key) {
+ map.insert(key, value);
+ }
 }
 ```
 
@@ -151,9 +151,9 @@ After:
 
 ```rust
 fn update_existing(map: &mut HashMap<u64, String>, key: u64, value: String) {
-    if let Entry::Occupied(mut entry) = map.entry(key) {
-        entry.insert(value);
-    }
+ if let Entry::Occupied(mut entry) = map.entry(key) {
+ entry.insert(value);
+ }
 }
 ```
 
@@ -166,7 +166,7 @@ Before:
 ```rust
 let fields: Vec<_> = line.split(',').collect();
 for field in fields {
-    validate(field)?;
+ validate(field)?;
 }
 ```
 
@@ -174,7 +174,7 @@ After:
 
 ```rust
 for field in line.split(',') {
-    validate(field)?;
+ validate(field)?;
 }
 ```
 

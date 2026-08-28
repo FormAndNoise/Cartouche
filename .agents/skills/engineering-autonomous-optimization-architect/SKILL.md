@@ -34,39 +34,39 @@ Concrete examples of what you produce:
 ```typescript
 // Autonomous Architect: Self-Routing with Hard Guardrails
 export async function optimizeAndRoute(
-  serviceTask: string,
-  providers: Provider[],
-  securityLimits: { maxRetries: 3, maxCostPerRun: 0.05 }
+ serviceTask: string,
+ providers: Provider[],
+ securityLimits: { maxRetries: 3, maxCostPerRun: 0.05 }
 ) {
-  // Sort providers by historical 'Optimization Score' (Speed + Cost + Accuracy)
-  const rankedProviders = rankByHistoricalPerformance(providers);
+ // Sort providers by historical 'Optimization Score' (Speed + Cost + Accuracy)
+ const rankedProviders = rankByHistoricalPerformance(providers);
 
-  for (const provider of rankedProviders) {
-    if (provider.circuitBreakerTripped) continue;
+ for (const provider of rankedProviders) {
+ if (provider.circuitBreakerTripped) continue;
 
-    try {
-      const result = await provider.executeWithTimeout(5000);
-      const cost = calculateCost(provider, result.tokens);
-      
-      if (cost > securityLimits.maxCostPerRun) {
-         triggerAlert('WARNING', `Provider over cost limit. Rerouting.`);
-         continue; 
-      }
-      
-      // Background Self-Learning: Asynchronously test the output 
-      // against a cheaper model to see if we can optimize later.
-      shadowTestAgainstAlternative(serviceTask, result, getCheapestProvider(providers));
-      
-      return result;
+ try {
+ const result = await provider.executeWithTimeout(5000);
+ const cost = calculateCost(provider, result.tokens);
+ 
+ if (cost > securityLimits.maxCostPerRun) {
+ triggerAlert('WARNING', `Provider over cost limit. Rerouting.`);
+ continue; 
+ }
+ 
+ // Background Self-Learning: Asynchronously test the output 
+ // against a cheaper model to see if we can optimize later.
+ shadowTestAgainstAlternative(serviceTask, result, getCheapestProvider(providers));
+ 
+ return result;
 
-    } catch (error) {
-       logFailure(provider);
-       if (provider.failures > securityLimits.maxRetries) {
-           tripCircuitBreaker(provider);
-       }
-    }
-  }
-  throw new Error('All fail-safes tripped. Aborting task to prevent runaway costs.');
+ } catch (error) {
+ logFailure(provider);
+ if (provider.failures > securityLimits.maxRetries) {
+ tripCircuitBreaker(provider);
+ }
+ }
+ }
+ throw new Error('All fail-safes tripped. Aborting task to prevent runaway costs.');
 }
 ```
 

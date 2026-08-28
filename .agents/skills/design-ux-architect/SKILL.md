@@ -62,126 +62,126 @@ You are **ArchitectUX**, a technical architecture and UX specialist who creates 
 ```css
 /* Example of your CSS architecture output */
 :root {
-  /* Light Theme Colors - Use actual colors from project spec */
-  --bg-primary: [spec-light-bg];
-  --bg-secondary: [spec-light-secondary];
-  --text-primary: [spec-light-text];
-  --text-secondary: [spec-light-text-muted];
-  --border-color: [spec-light-border];
-  
-  /* Brand Colors - From project specification */
-  --primary-color: [spec-primary];
-  --secondary-color: [spec-secondary];
-  --accent-color: [spec-accent];
-  
-  /* Typography Scale */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
-  --text-base: 1rem;     /* 16px */
-  --text-lg: 1.125rem;   /* 18px */
-  --text-xl: 1.25rem;    /* 20px */
-  --text-2xl: 1.5rem;    /* 24px */
-  --text-3xl: 1.875rem;  /* 30px */
-  
-  /* Spacing System */
-  --space-1: 0.25rem;    /* 4px */
-  --space-2: 0.5rem;     /* 8px */
-  --space-4: 1rem;       /* 16px */
-  --space-6: 1.5rem;     /* 24px */
-  --space-8: 2rem;       /* 32px */
-  --space-12: 3rem;      /* 48px */
-  --space-16: 4rem;      /* 64px */
-  
-  /* Layout System */
-  --container-sm: 640px;
-  --container-md: 768px;
-  --container-lg: 1024px;
-  --container-xl: 1280px;
+ /* Light Theme Colors - Use actual colors from project spec */
+ --bg-primary: [spec-light-bg];
+ --bg-secondary: [spec-light-secondary];
+ --text-primary: [spec-light-text];
+ --text-secondary: [spec-light-text-muted];
+ --border-color: [spec-light-border];
+ 
+ /* Brand Colors - From project specification */
+ --primary-color: [spec-primary];
+ --secondary-color: [spec-secondary];
+ --accent-color: [spec-accent];
+ 
+ /* Typography Scale */
+ --text-xs: 0.75rem; /* 12px */
+ --text-sm: 0.875rem; /* 14px */
+ --text-base: 1rem; /* 16px */
+ --text-lg: 1.125rem; /* 18px */
+ --text-xl: 1.25rem; /* 20px */
+ --text-2xl: 1.5rem; /* 24px */
+ --text-3xl: 1.875rem; /* 30px */
+ 
+ /* Spacing System */
+ --space-1: 0.25rem; /* 4px */
+ --space-2: 0.5rem; /* 8px */
+ --space-4: 1rem; /* 16px */
+ --space-6: 1.5rem; /* 24px */
+ --space-8: 2rem; /* 32px */
+ --space-12: 3rem; /* 48px */
+ --space-16: 4rem; /* 64px */
+ 
+ /* Layout System */
+ --container-sm: 640px;
+ --container-md: 768px;
+ --container-lg: 1024px;
+ --container-xl: 1280px;
 }
 
 /* Dark Theme - Use dark colors from project spec */
 [data-theme="dark"] {
-  --bg-primary: [spec-dark-bg];
-  --bg-secondary: [spec-dark-secondary];
-  --text-primary: [spec-dark-text];
-  --text-secondary: [spec-dark-text-muted];
-  --border-color: [spec-dark-border];
+ --bg-primary: [spec-dark-bg];
+ --bg-secondary: [spec-dark-secondary];
+ --text-primary: [spec-dark-text];
+ --text-secondary: [spec-dark-text-muted];
+ --border-color: [spec-dark-border];
 }
 
 /* System Theme Preference */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-primary: [spec-dark-bg];
-    --bg-secondary: [spec-dark-secondary];
-    --text-primary: [spec-dark-text];
-    --text-secondary: [spec-dark-text-muted];
-    --border-color: [spec-dark-border];
-  }
+ :root:not([data-theme="light"]) {
+ --bg-primary: [spec-dark-bg];
+ --bg-secondary: [spec-dark-secondary];
+ --text-primary: [spec-dark-text];
+ --text-secondary: [spec-dark-text-muted];
+ --border-color: [spec-dark-border];
+ }
 }
 
 /* Base Typography */
 .text-heading-1 {
-  font-size: var(--text-3xl);
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: var(--space-6);
+ font-size: var(--text-3xl);
+ font-weight: 700;
+ line-height: 1.2;
+ margin-bottom: var(--space-6);
 }
 
 /* Layout Components */
 .container {
-  width: 100%;
-  max-width: var(--container-lg);
-  margin: 0 auto;
-  padding: 0 var(--space-4);
+ width: 100%;
+ max-width: var(--container-lg);
+ margin: 0 auto;
+ padding: 0 var(--space-4);
 }
 
 .grid-2-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-8);
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: var(--space-8);
 }
 
 @media (max-width: 768px) {
-  .grid-2-col {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
-  }
+ .grid-2-col {
+ grid-template-columns: 1fr;
+ gap: var(--space-6);
+ }
 }
 
 /* Theme Toggle Component */
 .theme-toggle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 4px;
-  transition: all 0.3s ease;
+ position: relative;
+ display: inline-flex;
+ align-items: center;
+ background: var(--bg-secondary);
+ border: 1px solid var(--border-color);
+ border-radius: 24px;
+ padding: 4px;
+ transition: all 0.3s ease;
 }
 
 .theme-toggle-option {
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
+ padding: 8px 12px;
+ border-radius: 20px;
+ font-size: 14px;
+ font-weight: 500;
+ color: var(--text-secondary);
+ background: transparent;
+ border: none;
+ cursor: pointer;
+ transition: all 0.2s ease;
 }
 
 .theme-toggle-option.active {
-  background: var(--primary-500);
-  color: white;
+ background: var(--primary-500);
+ color: white;
 }
 
 /* Base theming for all elements */
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+ background-color: var(--bg-primary);
+ color: var(--text-primary);
+ transition: background-color 0.3s ease, color 0.3s ease;
 }
 ```
 
@@ -212,55 +212,55 @@ body {
 ```javascript
 // Theme Management System
 class ThemeManager {
-  constructor() {
-    this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
-    this.applyTheme(this.currentTheme);
-    this.initializeToggle();
-  }
+ constructor() {
+ this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
+ this.applyTheme(this.currentTheme);
+ this.initializeToggle();
+ }
 
-  getSystemTheme() {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
+ getSystemTheme() {
+ return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+ }
 
-  getStoredTheme() {
-    return localStorage.getItem('theme');
-  }
+ getStoredTheme() {
+ return localStorage.getItem('theme');
+ }
 
-  applyTheme(theme) {
-    if (theme === 'system') {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.removeItem('theme');
-    } else {
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-    }
-    this.currentTheme = theme;
-    this.updateToggleUI();
-  }
+ applyTheme(theme) {
+ if (theme === 'system') {
+ document.documentElement.removeAttribute('data-theme');
+ localStorage.removeItem('theme');
+ } else {
+ document.documentElement.setAttribute('data-theme', theme);
+ localStorage.setItem('theme', theme);
+ }
+ this.currentTheme = theme;
+ this.updateToggleUI();
+ }
 
-  initializeToggle() {
-    const toggle = document.querySelector('.theme-toggle');
-    if (toggle) {
-      toggle.addEventListener('click', (e) => {
-        if (e.target.matches('.theme-toggle-option')) {
-          const newTheme = e.target.dataset.theme;
-          this.applyTheme(newTheme);
-        }
-      });
-    }
-  }
+ initializeToggle() {
+ const toggle = document.querySelector('.theme-toggle');
+ if (toggle) {
+ toggle.addEventListener('click', (e) => {
+ if (e.target.matches('.theme-toggle-option')) {
+ const newTheme = e.target.dataset.theme;
+ this.applyTheme(newTheme);
+ }
+ });
+ }
+ }
 
-  updateToggleUI() {
-    const options = document.querySelectorAll('.theme-toggle-option');
-    options.forEach(option => {
-      option.classList.toggle('active', option.dataset.theme === this.currentTheme);
-    });
-  }
+ updateToggleUI() {
+ const options = document.querySelectorAll('.theme-toggle-option');
+ options.forEach(option => {
+ option.classList.toggle('active', option.dataset.theme === this.currentTheme);
+ });
+ }
 }
 
 // Initialize theme management
 document.addEventListener('DOMContentLoaded', () => {
-  new ThemeManager();
+ new ThemeManager();
 });
 ```
 
@@ -373,29 +373,29 @@ grep -i "target\|audience\|goal\|objective" ai/memory-bank/site-setup.md
 ```html
 <!-- Theme Toggle Component (place in header/navigation) -->
 <div class="theme-toggle" role="radiogroup" aria-label="Theme selection">
-  <button class="theme-toggle-option" data-theme="light" role="radio" aria-checked="false">
-    <span aria-hidden="true">☀️</span> Light
-  </button>
-  <button class="theme-toggle-option" data-theme="dark" role="radio" aria-checked="false">
-    <span aria-hidden="true">🌙</span> Dark
-  </button>
-  <button class="theme-toggle-option" data-theme="system" role="radio" aria-checked="true">
-    <span aria-hidden="true">💻</span> System
-  </button>
+ <button class="theme-toggle-option" data-theme="light" role="radio" aria-checked="false">
+ <span aria-hidden="true">☀️</span> Light
+ </button>
+ <button class="theme-toggle-option" data-theme="dark" role="radio" aria-checked="false">
+ <span aria-hidden="true">🌙</span> Dark
+ </button>
+ <button class="theme-toggle-option" data-theme="system" role="radio" aria-checked="true">
+ <span aria-hidden="true">💻</span> System
+ </button>
 </div>
 ```
 
 ### File Structure
 ```
 css/
-├── design-system.css    # Variables and tokens (includes theme system)
-├── layout.css          # Grid and container system
-├── components.css      # Reusable component styles (includes theme toggle)
-├── utilities.css       # Helper classes and utilities
-└── main.css            # Project-specific overrides
+├── design-system.css # Variables and tokens (includes theme system)
+├── layout.css # Grid and container system
+├── components.css # Reusable component styles (includes theme toggle)
+├── utilities.css # Helper classes and utilities
+└── main.css # Project-specific overrides
 js/
-├── theme-manager.js     # Theme switching functionality
-└── main.js             # Project-specific JavaScript
+├── theme-manager.js # Theme switching functionality
+└── main.js # Project-specific JavaScript
 ```
 
 ### Implementation Notes

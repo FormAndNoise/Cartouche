@@ -3,13 +3,13 @@
 # Direct convenience targets for building, testing, and developing Cartouche.
 #
 # Prerequisites:
-#   - Node.js >= 20 and pnpm >= 9 (or npm)
-#   - Rust stable + cargo toolchain
-#   - Tauri CLI v2: `cargo install tauri-cli --version "^2" --locked` (or npx @tauri-apps/cli)
+# - Node.js >= 20 and pnpm >= 9 (or npm)
+# - Rust stable + cargo toolchain
+# - Tauri CLI v2: `cargo install tauri-cli --version "^2" --locked` (or npx @tauri-apps/cli)
 
 .PHONY: install install-frontend install-backend build build-frontend build-backend \
-        test test-frontend test-backend lint lint-frontend lint-backend format \
-        format-check dev dev-tauri clean check
+ test test-frontend test-backend lint lint-frontend lint-backend format \
+ format-check dev dev-tauri clean check
 
 # --- Install ---
 

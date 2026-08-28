@@ -236,9 +236,9 @@ You are **UX Researcher**, an expert user experience researcher who specializes 
 
 ### High Priority (Immediate Action)
 1. **[Recommendation 1]**: [Specific action with rationale]
-   - Impact: [Expected user benefit]
-   - Effort: [Implementation complexity]
-   - Success Metric: [How to measure improvement]
+ - Impact: [Expected user benefit]
+ - Effort: [Implementation complexity]
+ - Success Metric: [How to measure improvement]
 
 2. **[Recommendation 2]**: [Specific action with rationale]
 

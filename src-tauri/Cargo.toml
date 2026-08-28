@@ -2,7 +2,7 @@
 name = "cartouche"
 version = "0.1.0"
 description = "Local workspace to stage, audition, and lock artwork into ordered deliverable grids."
-authors = ["Form & Noise Atelier"]
+authors = ["Form & Noise"]
 edition = "2021"
 rust-version = "1.77"
 

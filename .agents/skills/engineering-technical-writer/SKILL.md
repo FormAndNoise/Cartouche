@@ -124,79 +124,79 @@ MIT © [Your Name](https://github.com/yourname)
 # openapi.yml - documentation-first API design
 openapi: 3.1.0
 info:
-  title: Orders API
-  version: 2.0.0
-  description: |
-    The Orders API allows you to create, retrieve, update, and cancel orders.
+ title: Orders API
+ version: 2.0.0
+ description: |
+ The Orders API allows you to create, retrieve, update, and cancel orders.
 
-    ## Authentication
-    All requests require a Bearer token in the `Authorization` header.
-    Get your API key from [the dashboard](https://app.example.com/settings/api).
+ ## Authentication
+ All requests require a Bearer token in the `Authorization` header.
+ Get your API key from [the dashboard](https://app.example.com/settings/api).
 
-    ## Rate Limiting
-    Requests are limited to 100/minute per API key. Rate limit headers are
-    included in every response. See [Rate Limiting guide](https://docs.example.com/rate-limits).
+ ## Rate Limiting
+ Requests are limited to 100/minute per API key. Rate limit headers are
+ included in every response. See [Rate Limiting guide](https://docs.example.com/rate-limits).
 
-    ## Versioning
-    This is v2 of the API. See the [migration guide](https://docs.example.com/v1-to-v2)
-    if upgrading from v1.
+ ## Versioning
+ This is v2 of the API. See the [migration guide](https://docs.example.com/v1-to-v2)
+ if upgrading from v1.
 
 paths:
-  /orders:
-    post:
-      summary: Create an order
-      description: |
-        Creates a new order. The order is placed in `pending` status until
-        payment is confirmed. Subscribe to the `order.confirmed` webhook to
-        be notified when the order is ready to fulfill.
-      operationId: createOrder
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOrderRequest'
-            examples:
-              standard_order:
-                summary: Standard product order
-                value:
-                  customer_id: "cust_abc123"
-                  items:
-                    - product_id: "prod_xyz"
-                      quantity: 2
-                  shipping_address:
-                    line1: "123 Main St"
-                    city: "Seattle"
-                    state: "WA"
-                    postal_code: "98101"
-                    country: "US"
-      responses:
-        '201':
-          description: Order created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
-        '400':
-          description: Invalid request — see `error.code` for details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                missing_items:
-                  value:
-                    error:
-                      code: "VALIDATION_ERROR"
-                      message: "items is required and must contain at least one item"
-                      field: "items"
-        '429':
-          description: Rate limit exceeded
-          headers:
-            Retry-After:
-              description: Seconds until rate limit resets
-              schema:
-                type: integer
+ /orders:
+ post:
+ summary: Create an order
+ description: |
+ Creates a new order. The order is placed in `pending` status until
+ payment is confirmed. Subscribe to the `order.confirmed` webhook to
+ be notified when the order is ready to fulfill.
+ operationId: createOrder
+ requestBody:
+ required: true
+ content:
+ application/json:
+ schema:
+ $ref: '#/components/schemas/CreateOrderRequest'
+ examples:
+ standard_order:
+ summary: Standard product order
+ value:
+ customer_id: "cust_abc123"
+ items:
+ - product_id: "prod_xyz"
+ quantity: 2
+ shipping_address:
+ line1: "123 Main St"
+ city: "Seattle"
+ state: "WA"
+ postal_code: "98101"
+ country: "US"
+ responses:
+ '201':
+ description: Order created successfully
+ content:
+ application/json:
+ schema:
+ $ref: '#/components/schemas/Order'
+ '400':
+ description: Invalid request — see `error.code` for details
+ content:
+ application/json:
+ schema:
+ $ref: '#/components/schemas/Error'
+ examples:
+ missing_items:
+ value:
+ error:
+ code: "VALIDATION_ERROR"
+ message: "items is required and must contain at least one item"
+ field: "items"
+ '429':
+ description: Rate limit exceeded
+ headers:
+ Retry-After:
+ description: Seconds until rate limit resets
+ schema:
+ type: integer
 ```
 
 ### Tutorial Structure Template
@@ -257,54 +257,54 @@ You built a [description]. Here's what you learned:
 ```javascript
 // docusaurus.config.js
 const config = {
-  title: 'Project Docs',
-  tagline: 'Everything you need to build with Project',
-  url: 'https://docs.yourproject.com',
-  baseUrl: '/',
-  trailingSlash: false,
+ title: 'Project Docs',
+ tagline: 'Everything you need to build with Project',
+ url: 'https://docs.yourproject.com',
+ baseUrl: '/',
+ trailingSlash: false,
 
-  presets: [['classic', {
-    docs: {
-      sidebarPath: require.resolve('./sidebars.js'),
-      editUrl: 'https://github.com/org/repo/edit/main/docs/',
-      showLastUpdateAuthor: true,
-      showLastUpdateTime: true,
-      versions: {
-        current: { label: 'Next (unreleased)', path: 'next' },
-      },
-    },
-    blog: false,
-    theme: { customCss: require.resolve('./src/css/custom.css') },
-  }]],
+ presets: [['classic', {
+ docs: {
+ sidebarPath: require.resolve('./sidebars.js'),
+ editUrl: 'https://github.com/org/repo/edit/main/docs/',
+ showLastUpdateAuthor: true,
+ showLastUpdateTime: true,
+ versions: {
+ current: { label: 'Next (unreleased)', path: 'next' },
+ },
+ },
+ blog: false,
+ theme: { customCss: require.resolve('./src/css/custom.css') },
+ }]],
 
-  plugins: [
-    ['@docusaurus/plugin-content-docs', {
-      id: 'api',
-      path: 'api',
-      routeBasePath: 'api',
-      sidebarPath: require.resolve('./sidebarsApi.js'),
-    }],
-    [require.resolve('@cmfcmf/docusaurus-search-local'), {
-      indexDocs: true,
-      language: 'en',
-    }],
-  ],
+ plugins: [
+ ['@docusaurus/plugin-content-docs', {
+ id: 'api',
+ path: 'api',
+ routeBasePath: 'api',
+ sidebarPath: require.resolve('./sidebarsApi.js'),
+ }],
+ [require.resolve('@cmfcmf/docusaurus-search-local'), {
+ indexDocs: true,
+ language: 'en',
+ }],
+ ],
 
-  themeConfig: {
-    navbar: {
-      items: [
-        { type: 'doc', docId: 'intro', label: 'Guides' },
-        { to: '/api', label: 'API Reference' },
-        { type: 'docsVersionDropdown' },
-        { href: 'https://github.com/org/repo', label: 'GitHub', position: 'right' },
-      ],
-    },
-    algolia: {
-      appId: 'YOUR_APP_ID',
-      apiKey: 'YOUR_SEARCH_API_KEY',
-      indexName: 'your_docs',
-    },
-  },
+ themeConfig: {
+ navbar: {
+ items: [
+ { type: 'doc', docId: 'intro', label: 'Guides' },
+ { to: '/api', label: 'API Reference' },
+ { type: 'docsVersionDropdown' },
+ { href: 'https://github.com/org/repo', label: 'GitHub', position: 'right' },
+ ],
+ },
+ algolia: {
+ appId: 'YOUR_APP_ID',
+ apiKey: 'YOUR_SEARCH_API_KEY',
+ indexName: 'your_docs',
+ },
+ },
 };
 ```
 

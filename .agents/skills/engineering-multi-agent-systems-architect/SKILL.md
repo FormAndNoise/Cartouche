@@ -69,9 +69,9 @@ Input → Agent A → Agent B → Agent C → Output
 ### Pattern 2 — Parallel Fan-Out / Fan-In
 
 ```
-              ┌→ Agent A ─┐
+ ┌→ Agent A ─┐
 Input → Router ├→ Agent B ─┤→ Synthesizer → Output
-              └→ Agent C ─┘
+ └→ Agent C ─┘
 ```
 
 **Use when:**
@@ -91,10 +91,10 @@ Input → Router ├→ Agent B ─┤→ Synthesizer → Output
 ### Pattern 3 — Hierarchical (Orchestrator-Subagent)
 
 ```
-                    ┌→ Subagent A
+ ┌→ Subagent A
 Orchestrator ───────├→ Subagent B
-                    └→ Subagent C
-         ↑____feedback_____|
+ └→ Subagent C
+ ↑____feedback_____|
 ```
 
 **Use when:**
@@ -116,7 +116,7 @@ Orchestrator ───────├→ Subagent B
 
 ```
 Generator → Evaluator → [pass] → Output
-     ↑_______[fail + feedback]__|
+ ↑_______[fail + feedback]__|
 ```
 
 **Use when:**
@@ -138,7 +138,7 @@ Generator → Evaluator → [pass] → Output
 
 ```
 Agent A ⟷ Agent B
-  ⟷         ⟷
+ ⟷ ⟷
 Agent C ⟷ Agent D
 ```
 
@@ -183,17 +183,17 @@ Define a shared state schema passed between agents. Each agent reads only its re
 
 ```json
 {
-  "task_id": "uuid",
-  "original_input": "...",
-  "constraints": ["...", "..."],
-  "agent_outputs": {
-    "researcher": { "summary": "...", "sources": [...], "confidence": 0.85 },
-    "analyst": { "findings": "...", "risks": [...] },
-    "writer": { "draft": "..." }
-  },
-  "decisions": [],
-  "current_step": "writer",
-  "status": "in_progress"
+ "task_id": "uuid",
+ "original_input": "...",
+ "constraints": ["...", "..."],
+ "agent_outputs": {
+ "researcher": { "summary": "...", "sources": [...], "confidence": 0.85 },
+ "analyst": { "findings": "...", "risks": [...] },
+ "writer": { "draft": "..." }
+ },
+ "decisions": [],
+ "current_step": "writer",
+ "status": "in_progress"
 }
 ```
 
@@ -238,14 +238,14 @@ Apply to any agent that can be called repeatedly (retry loops, optimizer loops):
 State: CLOSED (normal) → OPEN (failing) → HALF-OPEN (testing recovery)
 
 CLOSED: Requests flow normally. Track failure rate over rolling window.
-  → If failure rate > threshold (e.g., 3 failures in 5 attempts): trip to OPEN
+ → If failure rate > threshold (e.g., 3 failures in 5 attempts): trip to OPEN
 
 OPEN: Requests immediately fail / escalate. Do not call the agent.
-  → After cooldown period (e.g., 60 seconds): transition to HALF-OPEN
+ → After cooldown period (e.g., 60 seconds): transition to HALF-OPEN
 
 HALF-OPEN: Allow one test request.
-  → If succeeds: return to CLOSED
-  → If fails: return to OPEN
+ → If succeeds: return to CLOSED
+ → If fails: return to OPEN
 ```
 
 ### Fallback Chain Design
@@ -383,25 +383,25 @@ AGENT ROLE: [Name]
 POSITION IN PIPELINE: [Step N of M]
 
 RECEIVES FROM: [Agent or source]
-  - Field: [name] | Type: [type] | Purpose: [why this agent needs it]
+ - Field: [name] | Type: [type] | Purpose: [why this agent needs it]
 
 RESPONSIBILITY:
-  [Single clear sentence describing what this agent does]
+ [Single clear sentence describing what this agent does]
 
 NOT RESPONSIBLE FOR:
-  - [Explicit exclusion 1]
-  - [Explicit exclusion 2]
+ - [Explicit exclusion 1]
+ - [Explicit exclusion 2]
 
 PRODUCES:
-  - Field: [name] | Type: [type] | Consumer: [downstream agent or output]
+ - Field: [name] | Type: [type] | Consumer: [downstream agent or output]
 
 SUCCESS CRITERIA:
-  - [Measurable condition 1]
-  - [Measurable condition 2]
+ - [Measurable condition 1]
+ - [Measurable condition 2]
 
 FAILURE BEHAVIOR:
-  - On hard failure: [action]
-  - On low confidence: [action]
+ - On hard failure: [action]
+ - On low confidence: [action]
 
 TOOLS PERMITTED: [list]
 CONTEXT WINDOW BUDGET: [max tokens this agent should consume]
@@ -419,23 +419,23 @@ When a 5-agent pipeline produces a wrong answer, the failure could be in any age
 **Per agent call, log:**
 ```json
 {
-  "trace_id": "uuid (shared across entire pipeline run)",
-  "span_id": "uuid (this agent call)",
-  "agent_id": "researcher_v2",
-  "step": 2,
-  "started_at": "ISO8601",
-  "completed_at": "ISO8601",
-  "latency_ms": 1243,
-  "input_tokens": 1820,
-  "output_tokens": 412,
-  "total_cost_usd": 0.0087,
-  "input_hash": "sha256 of input (for dedup/cache)",
-  "output": { ... },
-  "confidence": 0.82,
-  "tools_called": ["web_search"],
-  "errors": [],
-  "model": "claude-opus-4-6",
-  "status": "success | failure | partial | escalated"
+ "trace_id": "uuid (shared across entire pipeline run)",
+ "span_id": "uuid (this agent call)",
+ "agent_id": "researcher_v2",
+ "step": 2,
+ "started_at": "ISO8601",
+ "completed_at": "ISO8601",
+ "latency_ms": 1243,
+ "input_tokens": 1820,
+ "output_tokens": 412,
+ "total_cost_usd": 0.0087,
+ "input_hash": "sha256 of input (for dedup/cache)",
+ "output": { ... },
+ "confidence": 0.82,
+ "tools_called": ["web_search"],
+ "errors": [],
+ "model": "claude-opus-4-6",
+ "status": "success | failure | partial | escalated"
 }
 ```
 
