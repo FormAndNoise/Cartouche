@@ -28,6 +28,8 @@ import { SocketCard } from "./SocketCard";
 import { SocketDetailPanel } from "./SocketDetailPanel";
 import { errorMessage } from "../state/helpers";
 import { isTauriAvailable } from "../api/tauriClient";
+import { CartoucheSymbol } from "./CartoucheSymbol";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   analyzeDeckTaxonomy,
   getSocketPrimaryGroup,
@@ -57,6 +59,13 @@ export function SocketGrid({ project }: { project: Project }) {
     [project.sockets],
   );
   const cols = Math.min(4, Math.max(1, project.grid_columns));
+  const lockedCount = useMemo(
+    () => project.sockets.filter((s) => s.locked).length,
+    [project.sockets],
+  );
+  const totalSockets = project.sockets.length;
+  const lockedPct =
+    totalSockets > 0 ? Math.round((lockedCount / totalSockets) * 100) : 0;
 
   const taxonomy = useMemo(
     () => analyzeDeckTaxonomy(project.sockets, project.metadata?.matrix_config),
@@ -325,13 +334,29 @@ export function SocketGrid({ project }: { project: Project }) {
               >
                 ← Back
               </button>
+              <div className="header-brand-badge" title="Cartouche — Form & Noise Atelier">
+                <CartoucheSymbol size={22} className="header-symbol" />
+              </div>
               <h1 className="project-title">{project.name}</h1>
               <span className="socket-count-badge">
                 {project.sockets.length} sockets
               </span>
+              <div
+                className="deck-completion-meter"
+                title={`${lockedCount} of ${totalSockets} sockets locked (${lockedPct}%)`}
+              >
+                <span>🔒 {lockedCount}/{totalSockets} locked</span>
+                <div className="completion-progress-track">
+                  <div
+                    className="completion-progress-fill"
+                    style={{ width: `${lockedPct}%` }}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="board-header-right">
+              <ThemeToggle />
               {/* Workspace Mode: Scratchpad vs Grid */}
               <button
                 className="scratchpad-toggle-btn"

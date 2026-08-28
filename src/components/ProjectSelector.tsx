@@ -12,6 +12,10 @@ import { errorMessage, getRecentProjects } from "../state/helpers";
 
 const DEMO_PATH = "C:/Users/artist/Projects/tarot-deck";
 
+import { CartoucheSymbol } from "./CartoucheSymbol";
+import { CartoucheNameplate } from "./CartoucheNameplate";
+import { ThemeToggle } from "./ThemeToggle";
+
 export function ProjectSelector() {
   const board = useBoard();
   const [name, setName] = useState("");
@@ -69,11 +73,24 @@ export function ProjectSelector() {
   return (
     <div className="selector-screen">
       <div className="selector-card">
-        <h1>Tarot Socket Board</h1>
-        <p className="sub">
-          Manage a deck of deliverables as sockets on a board — drop in
-          candidate works, compare, pick a winner, lock what's final.
-        </p>
+        <div className="brand-header-lockup" style={{ justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <CartoucheSymbol size={36} className="brand-symbol" />
+            <h1 className="brand-title-wrap" style={{ margin: 0, display: "flex", alignItems: "center" }}>
+              <span className="visually-hidden">Cartouche</span>
+              <CartoucheNameplate height={36} className="brand-nameplate-svg" />
+            </h1>
+          </div>
+          <ThemeToggle />
+        </div>
+        <div className="brand-jobline-container">
+          <p className="sub">
+            Local workspace to stage, audition, and lock artwork into ordered deliverable grids.
+          </p>
+          <div className="brand-endorsement-mono">
+            FORM &amp; NOISE ATELIER  •  TAURI 2  •  REACT 19  •  SQLITE
+          </div>
+        </div>
         {isMockMode() && (
           <p className="mock-badge" role="note">
             Demo mode — running against the in-memory mock backend (no Tauri
@@ -212,6 +229,7 @@ export function ProjectSelector() {
                       setBusy(false);
                     }}
                     disabled={busy}
+                    aria-label={`Open recent project ${p}`}
                   >
                     Open
                   </button>

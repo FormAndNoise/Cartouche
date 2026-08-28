@@ -1,15 +1,15 @@
 [package]
-name = "tarot-socket-board"
+name = "cartouche"
 version = "0.1.0"
-description = "Local-first desktop app for artists managing large multi-deliverable projects via a socket grid."
-authors = ["Tarot Socket Board Contributors"]
+description = "Local workspace to stage, audition, and lock artwork into ordered deliverable grids."
+authors = ["Form & Noise Atelier"]
 edition = "2021"
 rust-version = "1.77"
 
 # The library is what Tauri embeds; the binary is a thin re-export so the app
 # can also be run with `cargo run` for smoke testing.
 [lib]
-name = "tarot_socket_board_lib"
+name = "cartouche_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

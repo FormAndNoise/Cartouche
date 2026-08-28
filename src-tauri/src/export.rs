@@ -55,9 +55,17 @@ pub fn export_project_service(
     let conn = open(root)?;
     let project = read_project(&conn, root)?;
 
+    let normalized_dest = if destination_path.to_lowercase().ends_with(".crtch") {
+        destination_path.to_string()
+    } else if destination_path.to_lowercase().ends_with(".zip") {
+        format!("{}.crtch", &destination_path[..destination_path.len() - 4])
+    } else {
+        format!("{}.crtch", destination_path)
+    };
+
     let tarot_dir = root.join(".tarot");
     let dest_file =
-        File::create(destination_path).map_err(|e| AppError::PathNotWritable(e.to_string()))?;
+        File::create(&normalized_dest).map_err(|e| AppError::PathNotWritable(e.to_string()))?;
     let mut zip = ZipWriter::new(dest_file);
     let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
@@ -180,7 +188,7 @@ pub fn export_project_service(
         .map_err(|e| AppError::Internal(e.to_string()))?;
 
     Ok(ExportProjectResult {
-        path: destination_path.to_string(),
+        path: normalized_dest,
         manifest_sha256,
     })
 }

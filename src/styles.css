@@ -1,26 +1,71 @@
-/* Tarot Socket Board — dark, studio-friendly theme */
+/* Cartouche — Form & Noise Atelier Loose Endorsed Family theme */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --bg: #14121a;
-  --bg-raised: #1d1a26;
-  --bg-card: #221e2e;
-  --bg-hover: #2a2538;
-  --border: #363048;
-  --border-strong: #4c4462;
-  --text: #e8e4f0;
-  --text-dim: #a49bb8;
-  --text-faint: #6f6785;
-  --accent: #9d7bff;
-  --accent-strong: #b79cff;
-  --accent-ink: #171025;
-  --good: #5fd68a;
-  --warn: #f0b45c;
-  --bad: #f47174;
-  --lock: #f0b45c;
-  --radius: 10px;
-  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-  --focus-ring: 0 0 0 2px var(--accent);
+  /* Spacing Scale */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-12: 3rem;    /* 48px */
+
+  /* Typography Scale */
+  --text-xs: 0.72rem;  /* 11px */
+  --text-sm: 0.85rem;  /* 13px */
+  --text-base: 0.95rem;/* 14.5px */
+  --text-lg: 1.1rem;   /* 16.5px */
+  --text-xl: 1.35rem;  /* 20px */
+  --text-2xl: 1.6rem;  /* 24px */
+
+  /* Default Void (Studio Dark) Theme Tokens */
+  --bg: #0b0b0b;
+  --bg-raised: #141414;
+  --bg-card: #1c1c1e;
+  --bg-hover: #26262a;
+  --border: #2c2c30;
+  --border-strong: #424248;
+  --text: #f2eee8;
+  --text-dim: #a19d97;
+  --text-faint: #67635e;
+  --accent: #3f6e8c;
+  --accent-light: #6fa0be;
+  --accent-strong: #4d82a4;
+  --accent-ink: #f2eee8;
+  --house-metal: #d45500;
+  --good: #4ea874;
+  --warn: #d45500;
+  --bad: #e55353;
+  --lock: #d45500;
+  --radius: 8px;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --focus-ring: 0 0 0 2px var(--accent-light);
   font-size: 15px;
+}
+
+/* Atelier Paper (Print Preview Light) Theme */
+[data-theme="light"] {
+  --bg: #f6f1ea;
+  --bg-raised: #eae4db;
+  --bg-card: #ffffff;
+  --bg-hover: #e2dad0;
+  --border: #d8cfc2;
+  --border-strong: #b8ac9c;
+  --text: #141414;
+  --text-dim: #5c5750;
+  --text-faint: #8c8478;
+  --accent: #3f6e8c;
+  --accent-light: #2c546e;
+  --accent-strong: #1e3f54;
+  --accent-ink: #ffffff;
+  --house-metal: #d45500;
+  --good: #2a824e;
+  --warn: #d45500;
+  --bad: #c93b3b;
+  --lock: #d45500;
+  --shadow: 0 8px 28px rgba(20, 20, 20, 0.12);
+  --focus-ring: 0 0 0 2px var(--accent);
 }
 
 * {
@@ -37,12 +82,17 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family:
-    "Segoe UI",
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .brand-title, .project-title {
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  letter-spacing: -0.015em;
+}
+
+code, pre, .mono, .path-label, .extracted-text-box, .socket-pos {
+  font-family: "IBM Plex Mono", monospace;
 }
 
 button {
@@ -123,10 +173,82 @@ label.field > span {
   margin-bottom: 4px;
 }
 
-.app {
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px;
+  gap: 2px;
+}
+.theme-toggle-btn {
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.theme-toggle-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.deck-completion-meter {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+.completion-progress-track {
+  width: 60px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.completion-progress-fill {
   height: 100%;
+  background: var(--house-metal);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.brand-header-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.brand-symbol {
+  color: var(--accent-light);
+  flex-shrink: 0;
+}
+.brand-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.header-brand-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-light);
+  padding: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 /* ---------- board header ---------- */
@@ -543,21 +665,57 @@ details.extracted pre {
 }
 .selector-card {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   background: var(--bg-raised);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 28px;
   box-shadow: var(--shadow);
 }
-.selector-card h1 {
-  margin: 0 0 4px;
-  font-size: 1.4rem;
+.brand-header-lockup {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.brand-symbol {
+  color: var(--accent-light);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+  flex-shrink: 0;
+}
+[data-theme="light"] .brand-symbol {
+  color: var(--accent);
+}
+.brand-nameplate-svg {
+  color: var(--accent-light);
+  overflow: visible;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
+[data-theme="light"] .brand-nameplate-svg {
+  color: var(--accent);
+}
+.brand-jobline-container {
+  margin: 0 0 20px;
 }
 .selector-card .sub {
   color: var(--text-dim);
-  margin: 0 0 20px;
+  margin: 0 0 6px;
   font-size: 0.88rem;
+  line-height: 1.4;
+}
+.brand-endorsement-mono {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--accent-light);
+  opacity: 0.85;
+  font-weight: 500;
+}
+[data-theme="light"] .brand-endorsement-mono {
+  color: var(--accent);
+}
+.selector-card h1 {
+  margin: 0 0 4px;
+  font-size: 1.4rem;
 }
 .selector-card h2 {
   font-size: 0.95rem;

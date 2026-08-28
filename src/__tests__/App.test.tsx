@@ -13,7 +13,7 @@ describe("project selector & app shell (US-F01)", () => {
   it("shows the selector screen when no project is open (AC-F01.1)", () => {
     const { getByRole } = renderApp(makeClient());
     expect(
-      getByRole("heading", { name: /tarot socket board/i }),
+      getByRole("heading", { name: /cartouche/i }),
     ).toBeInTheDocument();
     expect(
       getByRole("form", { name: /create new project/i }),
