@@ -80,3 +80,11 @@ clean:
 check: install lint test build
 	@echo "install + lint + test + build all passed"
 
+# --- GitHub Release Trigger ---
+
+release-tag:
+	git tag -f v0.1.0
+	git push origin v0.1.0 --force
+	@echo "Triggered GitHub Actions Release build for tag v0.1.0"
+
+
