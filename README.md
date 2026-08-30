@@ -6,7 +6,7 @@
 
 ### *Local workspace to stage, audition, and lock artwork into ordered deliverable grids.*
 
-[![Form & Noise](https://img.shields.io/badge/Form%20%26%20Noise-Loose%20Endorsed%20Family-D45500?style=flat-square)](https://github.com/FormAndNoise)
+(https://github.com/FormAndNoise)
 [![GitHub Release](https://img.shields.io/github/v/release/FormAndNoise/cartouche?style=flat-square&color=3F6E8C&logo=github)](https://github.com/FormAndNoise/cartouche/releases)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2.x-3F6E8C?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app)
 [![React 19](https://img.shields.io/badge/React-19.x-6FA0BE?style=flat-square&logo=react&logoColor=black)](https://react.dev)
