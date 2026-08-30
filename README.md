@@ -29,36 +29,6 @@ Whether you are creating a 78-card tarot deck, a 200-card trading card game, a s
   <img src="brand/cartouche_lockup_dark.png" alt="Cartouche Lockup Banner" width="80%" />
 </div>
 
-> [!NOTE]
-> **Form & Noise Design Law**: Cartouche is built on the *Loose Endorsed Family* identity. Every socket grid item displays a strict state pip system—visualizing unlocked draft iterations vs. locked final deliverables in House Metal (`#D45500`).
-
----
-
-## 🎨 Visual Design System & Brand Tokens
-
-Cartouche adheres to the **Form & Noise** design system for high-contrast accessibility, clear typographic hierarchy, and tactile visual feedback.
-
-### 🎨 Color Palette & Design Tokens
-
-| Token Role | Hex Code | Visual Sample | Usage |
-|---|---|---|---|
-| **Accent (Light)** | `#3F6E8C` | `■` | Primary interactive controls, selected card borders (Paper Ground) |
-| **Accent (Dark)** | `#6FA0BE` | `■` | Primary interactive controls, selected card borders (Void Ground) |
-| **House Metal** | `#D45500` | `■` | **Locked State Pip**, winner badges, brand endorsement tags |
-| **Paper Ground** | `#F6F1EA` | `■` | Light mode canvas background, card backing |
-| **Void Ground** | `#0B0B0B` | `■` | Dark mode canvas background, root shell background |
-| **Ink Foreground** | `#141414` / `#F2EEE8` | `■` | High-contrast body text and crisp UI labels |
-| **Muted Hairline** | `#8A8680` / `#1F2428` | `■` | Unlocked slot borders, structural grid divides, empty socket dashed strokes |
-
-### 🔤 Typography Hierarchy
-
-| Font Family | Classification | Usage |
-|---|---|---|
-| **Space Grotesk** | Display / Wordmark | Application header, project title nameplate, modal headers (tracking $-1\%$ to $-2\%$) |
-| **Inter** | Interface / Body | Form inputs, metadata labels, detail panel attributes, socket status indicators |
-| **IBM Plex Mono** | Code / Data | Asset hashes (`sha256`), file paths, SQLite schemas, IPC payloads, keyboard shortcut badges |
-
----
 
 ## ⚡ Quick Start & Download
 
