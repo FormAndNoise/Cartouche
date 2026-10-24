@@ -45,3 +45,8 @@ coverage/
 package-lock.json
 yarn.lock
 
+
+__pycache__/
+*.pyc
+tools/latest_screen.jpg
+

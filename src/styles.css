@@ -152,6 +152,13 @@ select {
  padding: 7px 10px;
  width: 100%;
 }
+select {
+ min-width: 0;
+ max-width: 100%;
+ overflow: hidden;
+ text-overflow: ellipsis;
+ white-space: nowrap;
+}
 input:disabled,
 textarea:disabled,
 select:disabled {
@@ -253,6 +260,9 @@ label.field > span {
 
 /* ---------- board header ---------- */
 .board-header {
+ position: sticky;
+ top: 0;
+ z-index: 20;
  display: flex;
  align-items: center;
  gap: 14px;
@@ -790,7 +800,16 @@ details.extracted pre {
  max-width: 560px;
  max-height: 90vh;
  overflow-y: auto;
+ overflow-x: hidden;
+ box-sizing: border-box;
  padding: 20px;
+}
+.modal-body {
+ overflow-x: hidden;
+ box-sizing: border-box;
+}
+.modal * {
+ min-width: 0;
 }
 .modal h2 {
  margin: 0 0 12px;

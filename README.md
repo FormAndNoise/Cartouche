@@ -134,6 +134,65 @@ While named after the ancient Egyptian protective frame and tailored for tarot p
 
 ---
 
+---
+
+## ⚡ ComfyUI Studio & Bidirectional Bridge
+
+Cartouche integrates directly with local **ComfyUI** instances (`http://127.0.0.1:8188`) to generate card illustrations, audition prompt variations, and pull finished renders into ordered sockets without manual file handling.
+
+```
++-------------------------+               +-------------------------+
+|     Cartouche Deck      | --- Queue --> |     ComfyUI Server      |
+|  * Socket Card Notes    |               |  * SD1.5 / SDXL / Flux  |
+|  * Negative Prompt      | <-- Ingest -- |  * KSampler Execution   |
+|  * KSampler & Model     |               |  * Image Output Cache   |
++-------------------------+               +-------------------------+
+```
+
+### 1. Requirements & Setup
+
+1. **Start ComfyUI**: Launch your local ComfyUI server. By default, Cartouche connects to `http://127.0.0.1:8188`.
+2. **Custom Nodes (Optional)**: Install the Cartouche custom node pack for workflow integration:
+   ```bash
+   # Copy the extension to your ComfyUI custom_nodes folder:
+   cp -r comfyui-cartouche path/to/ComfyUI/custom_nodes/
+   ```
+   Provides:
+   - `CartoucheReadSocketPrompt`: Pulls the active socket description/notes into your ComfyUI graph.
+   - `CartoucheSendToSocket`: Automatically pipes generated image tensors directly back to a Cartouche socket.
+
+### 2. Single-Card Generation (Inside Detail Panel)
+
+1. Click any unlocked card slot in the grid to open the right-hand **Socket Detail Panel**.
+2. Write or review the prompt in the **Notes** field (for example: *"A prima ballerina poised on a cliff edge at dawn, tarot illustration, ornate gold frame"*).
+3. Scroll to the **⚡ ComfyUI Card Generator** section:
+   - **Model**: Select an installed checkpoint (SDXL, SD1.5, or Flux).
+   - **Steps & Sampler**: Select KSampler algorithm, scheduler, and generation steps (for example, 12-20 steps).
+   - **Aspect Ratio**: Choose Tarot Standard (`768x1344`), Square (`1024x1024`), or Landscape.
+   - **Auto-select as Winner**: Check to immediately audition the new render as the active card artwork.
+4. Click **⚡ Generate Card in ComfyUI**. Cartouche queues the job, polls ComfyUI progress, ingests the resulting image into `assets/`, generates a WebP preview, and displays it in the card slot.
+
+### 3. ComfyUI Studio Modal (Batch Generation & History Import)
+
+Click the **⚡ ComfyUI Studio** button in the top navigation bar to open the 3-tab studio workspace:
+
+- **⚡ Generate Cards (Batch Deck Generation)**:
+  - Generate artwork for all unlocked sockets, empty sockets, or current suit/tag filters in a single automated queue.
+  - Generates 1, 2, 4, or 8 variations per card slot with consecutive seed stepping.
+- **📥 Send from ComfyUI (History Ingestion)**:
+  - Scans recent ComfyUI execution history and displays image thumbnails alongside positive prompts, model names, and seeds.
+  - Select any target card slot from the dropdown.
+  - Enable **Sync ComfyUI prompt into card description (`notes`)** to auto-populate card notes with the generation prompt.
+  - Click **Send to Card ->** to import the image and prompt into the chosen slot.
+- **⚙ Style & Workflow**:
+  - Configure universal positive style anchors (such as *"linocut, gold leaf, muted gouache palette"*) and negative prompt templates applied across your entire deck.
+  - Toggle **Inject into Active ComfyUI Workflow** to override prompts inside your active ComfyUI graph tab while keeping custom node chains intact.
+
+### 4. Forensic Metadata & Settings Recall
+
+- Every image generated or imported from ComfyUI preserves full generation metadata in `metadata_json` (Model, Sampler, Scheduler, Seed, Steps, CFG Scale).
+- Inside the socket detail panel, click **Load Settings into Generator** on any past work to instantly restore all exact generation parameters.
+
 ## 🏗️ Architecture & Data Flow
 
 Cartouche relies on a clean separation between the frontend interface and native system services via a unified `BackendClient` contract:

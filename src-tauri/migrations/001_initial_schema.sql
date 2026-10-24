@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS works (
     media_kind TEXT NOT NULL,
     mime_type TEXT,
     byte_size INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
