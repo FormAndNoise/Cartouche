@@ -51,7 +51,10 @@ export function ComfyStudioModal({
 
   // Generator & Config fields
   const [host, setHost] = useState(
-    savedConfig.host || DEFAULT_COMFY_CONFIG.host,
+    (savedConfig.host || DEFAULT_COMFY_CONFIG.host).replace(
+      "127.0.0.1",
+      "localhost",
+    ),
   );
   const [model, setModel] = useState(
     savedConfig.model || DEFAULT_COMFY_CONFIG.model,
@@ -1037,7 +1040,7 @@ export function ComfyStudioModal({
                 <input
                   value={host}
                   aria-label="ComfyUI Server URL"
-                  placeholder="http://127.0.0.1:8188"
+                  placeholder="http://localhost:8188"
                   onChange={(e) => setHost(e.target.value)}
                 />
               </label>

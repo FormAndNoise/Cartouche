@@ -172,7 +172,7 @@ describe("ComfyUI bidirectional integration & generation", () => {
     // Verify toolbar controls: reload button and external browser link
     expect(getByTestId("comfy-canvas-reload-btn")).toBeInTheDocument();
     const externalLink = getByTestId("comfy-canvas-open-external-btn");
-    expect(externalLink).toHaveAttribute("href", "http://127.0.0.1:8188");
+    expect(externalLink).toHaveAttribute("href", "http://localhost:8188");
     expect(externalLink).toHaveAttribute("target", "_blank");
 
     // Click "Use Active Workflow as Deck Default" button

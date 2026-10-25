@@ -12,7 +12,7 @@
 1. The repository `formandnoise/cartouche` is cloned at `C:\Users\Aarik\cartouche`.
 2. Visual Studio 2022 C++ Build Tools are installed. Windows Smart App Control is off.
 3. All 54 Rust backend tests (`cargo test`) and 61 frontend tests (`pnpm test`) pass.
-4. The local ComfyUI server runs on `http://127.0.0.1:8188`.
+4. The local ComfyUI server runs on `http://localhost:8188`.
 5. The user's test deck is unpacked at `C:\Users\Aarik\Downloads\ballet_tarot` (from `C:\Users\Aarik\Downloads\ballet_tarot.crtch`).
 6. Changes are **not yet committed or pushed** to GitHub. Do not push until live ComfyUI image generation and history import are verified on screen.
 
@@ -112,7 +112,7 @@ Edit [`src/styles.css`](file:///c:/Users/Aarik/cartouche/src/styles.css) (and co
 
 ### Task 2: Live End-to-End Test of Image Generation (Cartouche → ComfyUI → Cartouche)
 This test **has not been observed yet** and **must be executed live** using [`tools/ui_ctl.mjs`](file:///c:/Users/Aarik/cartouche/tools/ui_ctl.mjs) while the user watches:
-1. Verify ComfyUI is listening on `127.0.0.1:8188`:
+1. Verify ComfyUI is listening on `localhost:8188`:
    ```powershell
    netstat -ano | Select-String ":8188\s"
    ```

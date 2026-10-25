@@ -158,7 +158,7 @@ export interface ComfyHistoryItem {
 }
 
 export const DEFAULT_COMFY_CONFIG: Required<ComfyProjectConfig> = {
-  host: "http://127.0.0.1:8188",
+  host: "http://localhost:8188",
   model: "sd_xl_base_1.0.safetensors",
   sampler_name: "euler",
   scheduler: "normal",

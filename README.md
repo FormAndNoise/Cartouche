@@ -138,7 +138,7 @@ While named after the ancient Egyptian protective frame and tailored for tarot p
 
 ## ⚡ ComfyUI Studio & Bidirectional Bridge
 
-Cartouche integrates directly with local **ComfyUI** instances (`http://127.0.0.1:8188`) to generate card illustrations, audition prompt variations, and pull finished renders into ordered sockets without manual file handling.
+Cartouche integrates directly with local **ComfyUI** instances (`http://localhost:8188`) to generate card illustrations, audition prompt variations, and pull finished renders into ordered sockets without manual file handling.
 
 ```
 +-------------------------+               +-------------------------+
@@ -151,7 +151,7 @@ Cartouche integrates directly with local **ComfyUI** instances (`http://127.0.0.
 
 ### 1. Requirements & Setup
 
-1. **Start ComfyUI**: Launch your local ComfyUI server. By default, Cartouche connects to `http://127.0.0.1:8188`.
+1. **Start ComfyUI**: Launch your local ComfyUI server. By default, Cartouche connects to `http://localhost:8188`.
 2. **Custom Nodes (Optional)**: Install the Cartouche custom node pack for workflow integration:
    ```bash
    # Copy the extension to your ComfyUI custom_nodes folder:
@@ -185,7 +185,7 @@ Click the **⚡ ComfyUI Studio** button in the top navigation bar to open the 4-
   - Enable **Sync ComfyUI prompt into card description (`notes`)** to auto-populate card notes with the generation prompt.
   - Click **Send to Card ->** to import the image and prompt into the chosen slot.
 - **🎨 Workflow Canvas (Embedded Interactive Workspace)**:
-  - Mirrors your live ComfyUI environment (`http://127.0.0.1:8188`) directly inside an embedded, responsive canvas in Cartouche.
+  - Mirrors your live ComfyUI environment (`http://localhost:8188`) directly inside an embedded, responsive canvas in Cartouche.
   - Build, modify, or audition node graphs without leaving the desktop app.
   - Includes **↗ Open in Browser** for external multi-monitor workflows and a canvas reload control.
   - Click **⭐ Use Active Workflow as Deck Default** to immediately lock the canvas node structure as your deck's default generator. Cartouche automatically routes card prompts into the canvas `CLIPTextEncode` node and streams output images directly to card slots.

@@ -1259,7 +1259,7 @@ export class MockBackendClient implements BackendClient {
 
   // ComfyUI Collaboration Bridge
   private resolveComfyUrl(host: string | undefined, path: string): string {
-    const cleanHost = (host || "http://127.0.0.1:8188")
+    const cleanHost = (host || "http://localhost:8188")
       .trim()
       .replace(/\/+$/, "");
     if (
@@ -1274,7 +1274,7 @@ export class MockBackendClient implements BackendClient {
 
   getComfyServerInfo(host?: string): Promise<ComfyServerInfo> {
     return this.ipc(async () => {
-      const cleanHost = host?.trim() || "http://127.0.0.1:8188";
+      const cleanHost = host?.trim() || "http://localhost:8188";
       if (this.latency > 0 && typeof fetch === "function") {
         try {
           const models: string[] = [];

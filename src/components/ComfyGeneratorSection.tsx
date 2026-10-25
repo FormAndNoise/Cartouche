@@ -31,9 +31,16 @@ export function ComfyGeneratorSection({
   onOpenComfyStudio,
 }: ComfyGeneratorSectionProps) {
   const board = useBoard();
-  const projectConfig: ComfyProjectConfig = {
+  const rawConfig: ComfyProjectConfig = {
     ...DEFAULT_COMFY_CONFIG,
     ...(board.project?.metadata?.comfy_config ?? {}),
+  };
+  const projectConfig: ComfyProjectConfig = {
+    ...rawConfig,
+    host: (rawConfig.host || DEFAULT_COMFY_CONFIG.host).replace(
+      "127.0.0.1",
+      "localhost",
+    ),
   };
 
   const [serverInfo, setServerInfo] = useState<ComfyServerInfo | null>(null);

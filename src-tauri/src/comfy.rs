@@ -11,7 +11,7 @@ use crate::error::AppError;
 use crate::models::{Socket, SocketId};
 use crate::work::attach_work_data_service;
 
-pub const DEFAULT_COMFY_HOST: &str = "http://127.0.0.1:8188";
+pub const DEFAULT_COMFY_HOST: &str = "http://localhost:8188";
 
 pub const DEFAULT_SAMPLERS: &[&str] = &[
     "euler",
@@ -568,9 +568,13 @@ fn parse_http_url(base_url: &str, path_and_query: &str) -> Result<(String, u16, 
         Some(idx) => {
             let h = &host_port[..idx];
             let p = host_port[idx + 1..].parse::<u16>().unwrap_or(8188);
-            (h.to_string(), p)
+            let normalized = if h == "127.0.0.1" { "localhost" } else { h };
+            (normalized.to_string(), p)
         }
-        None => (host_port.to_string(), 8188),
+        None => {
+            let normalized = if host_port == "127.0.0.1" { "localhost" } else { host_port };
+            (normalized.to_string(), 8188)
+        }
     };
 
     let full_path = if path_and_query.starts_with('/') {
