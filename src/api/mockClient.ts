@@ -1381,7 +1381,11 @@ export class MockBackendClient implements BackendClient {
               models,
               samplers,
               schedulers,
-              active_workflow: null,
+              active_workflow: {
+                has_active_workflow: false,
+                ksampler_nodes: [],
+                save_image_nodes: [],
+              },
               error: null,
             };
           }
