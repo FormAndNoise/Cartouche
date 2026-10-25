@@ -62,6 +62,7 @@ export interface ComfyProjectConfig {
   height?: number;
   batch_size?: number;
   workflow_mode?: "builtin" | "active_workflow";
+  custom_workflow_json?: string;
   style_prefix?: string;
   style_suffix?: string;
   negative_prompt?: string;
@@ -175,6 +176,7 @@ export const DEFAULT_COMFY_CONFIG: Required<ComfyProjectConfig> = {
   auto_select_winner: true,
   seed_policy: "random",
   fixed_seed: 424242,
+  custom_workflow_json: "",
 };
 
 export function parseWorkComfyMetadata(work: Work): ComfyWorkMetadata | null {

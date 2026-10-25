@@ -172,9 +172,9 @@ Cartouche integrates directly with local **ComfyUI** instances (`http://127.0.0.
    - **Auto-select as Winner**: Check to immediately audition the new render as the active card artwork.
 4. Click **⚡ Generate Card in ComfyUI**. Cartouche queues the job, polls ComfyUI progress, ingests the resulting image into `assets/`, generates a WebP preview, and displays it in the card slot.
 
-### 3. ComfyUI Studio Modal (Batch Generation & History Import)
+### 3. ComfyUI Studio Modal (Canvas, Batch Generation & History Import)
 
-Click the **⚡ ComfyUI Studio** button in the top navigation bar to open the 3-tab studio workspace:
+Click the **⚡ ComfyUI Studio** button in the top navigation bar to open the 4-tab studio workspace:
 
 - **⚡ Generate Cards (Batch Deck Generation)**:
   - Generate artwork for all unlocked sockets, empty sockets, or current suit/tag filters in a single automated queue.
@@ -184,9 +184,16 @@ Click the **⚡ ComfyUI Studio** button in the top navigation bar to open the 3-
   - Select any target card slot from the dropdown.
   - Enable **Sync ComfyUI prompt into card description (`notes`)** to auto-populate card notes with the generation prompt.
   - Click **Send to Card ->** to import the image and prompt into the chosen slot.
+- **🎨 Workflow Canvas (Embedded Interactive Workspace)**:
+  - Mirrors your live ComfyUI environment (`http://127.0.0.1:8188`) directly inside an embedded, responsive canvas in Cartouche.
+  - Build, modify, or audition node graphs without leaving the desktop app.
+  - Includes **↗ Open in Browser** for external multi-monitor workflows and a canvas reload control.
+  - Click **⭐ Use Active Workflow as Deck Default** to immediately lock the canvas node structure as your deck's default generator. Cartouche automatically routes card prompts into the canvas `CLIPTextEncode` node and streams output images directly to card slots.
 - **⚙ Style & Workflow**:
+  - Choose your **Workflow Engine**: Built-in Cartouche SD/SDXL pipeline or Active ComfyUI Canvas Workflow.
+  - Optional **Custom Workflow JSON Override**: Paste exported API-format workflow JSON directly into project settings.
   - Configure universal positive style anchors (such as *"linocut, gold leaf, muted gouache palette"*) and negative prompt templates applied across your entire deck.
-  - Toggle **Inject into Active ComfyUI Workflow** to override prompts inside your active ComfyUI graph tab while keeping custom node chains intact.
+  - Set deterministic seed policies (Deck Stride, Fixed, or Random).
 
 ### 4. Forensic Metadata & Settings Recall
 

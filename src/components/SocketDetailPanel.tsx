@@ -22,6 +22,7 @@ import {
 } from "../api/types";
 import { useBoard, type AttachableFile } from "../state/context";
 import { ComfyGeneratorSection } from "./ComfyGeneratorSection";
+import type { ComfyStudioTab } from "./ComfyStudioModal";
 import { Modal } from "./Modal";
 import { LICENSE_PRESETS } from "../lib/licensing";
 
@@ -101,7 +102,7 @@ export function SocketDetailPanel({
 }: {
   socket: Socket;
   onClose: () => void;
-  onOpenComfyStudio?: (tab: "batch" | "history" | "settings") => void;
+  onOpenComfyStudio?: (tab: ComfyStudioTab) => void;
 }) {
   const board = useBoard();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -634,7 +635,8 @@ export function SocketDetailPanel({
                           marginTop: 6,
                           padding: "6px 8px",
                           borderRadius: 4,
-                          background: "var(--surface-2, rgba(128,128,128,0.08))",
+                          background:
+                            "var(--surface-2, rgba(128,128,128,0.08))",
                           fontSize: 11,
                         }}
                       >
@@ -654,7 +656,9 @@ export function SocketDetailPanel({
                             <strong>Prompt:</strong> {comfyMeta.positive_prompt}
                           </div>
                         )}
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <div
+                          style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
+                        >
                           {comfyMeta.positive_prompt && (
                             <button
                               type="button"

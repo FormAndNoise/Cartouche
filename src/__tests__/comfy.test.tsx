@@ -151,4 +151,38 @@ describe("ComfyUI bidirectional integration & generation", () => {
       expect(p.sockets[2].works.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  it("renders embedded interactive workflow canvas and sets active workflow as deck default", async () => {
+    const { getByTestId, client } = await createProjectViaUi(
+      "Canvas Comfy Deck",
+      3,
+    );
+    const user = userEvent.setup();
+
+    // Open ComfyUI Studio modal
+    await user.click(getByTestId("open-comfy-studio-btn"));
+    expect(getByTestId("comfy-studio-modal")).toBeInTheDocument();
+
+    // Click "Workflow Canvas" tab
+    await user.click(getByTestId("comfy-tab-canvas"));
+    await waitFor(() =>
+      expect(getByTestId("comfy-canvas-panel")).toBeInTheDocument(),
+    );
+
+    // Verify toolbar controls: reload button and external browser link
+    expect(getByTestId("comfy-canvas-reload-btn")).toBeInTheDocument();
+    const externalLink = getByTestId("comfy-canvas-open-external-btn");
+    expect(externalLink).toHaveAttribute("href", "http://127.0.0.1:8188");
+    expect(externalLink).toHaveAttribute("target", "_blank");
+
+    // Click "Use Active Workflow as Deck Default" button
+    const useWorkflowBtn = getByTestId("use-canvas-workflow-btn");
+    await user.click(useWorkflowBtn);
+
+    // Verify project metadata persisted workflow_mode: "active_workflow"
+    await waitFor(async () => {
+      const p = await client.getProject("/tmp/p");
+      expect(p.metadata?.comfy_config?.workflow_mode).toBe("active_workflow");
+    });
+  });
 });

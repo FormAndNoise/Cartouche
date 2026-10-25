@@ -18,13 +18,10 @@ const CARD_ASPECT_PRESETS = [
   { label: "Square (1024×1024)", width: 1024, height: 1024 },
 ];
 
-export type ComfyStudioTab = "batch" | "history" | "settings";
+export type ComfyStudioTab = "batch" | "history" | "canvas" | "settings";
 
 type BatchScope =
-  | "all_unlocked"
-  | "empty_only"
-  | "current_filter"
-  | "single_socket";
+  "all_unlocked" | "empty_only" | "current_filter" | "single_socket";
 
 interface ComfyStudioModalProps {
   project: Project;
@@ -102,6 +99,10 @@ export function ComfyStudioModal({
   const [fixedSeed, setFixedSeed] = useState<number>(
     savedConfig.fixed_seed ?? 424242,
   );
+  const [customWorkflowJson, setCustomWorkflowJson] = useState<string>(
+    savedConfig.custom_workflow_json ?? "",
+  );
+  const [canvasKey, setCanvasKey] = useState(0);
 
   // Scope & Target socket state
   const unlockedSockets = useMemo(
@@ -136,7 +137,11 @@ export function ComfyStudioModal({
     try {
       const info = await board.client.getComfyServerInfo(targetHost);
       setServerInfo(info);
-      if (info.online && info.models.length > 0 && !info.models.includes(model)) {
+      if (
+        info.online &&
+        info.models.length > 0 &&
+        !info.models.includes(model)
+      ) {
         setModel(info.models[0]);
       }
     } catch {
@@ -180,6 +185,7 @@ export function ComfyStudioModal({
       auto_select_winner: autoSelectWinner,
       seed_policy: seedPolicy,
       fixed_seed: fixedSeed,
+      custom_workflow_json: customWorkflowJson,
     }),
     [
       host,
@@ -199,6 +205,7 @@ export function ComfyStudioModal({
       autoSelectWinner,
       seedPolicy,
       fixedSeed,
+      customWorkflowJson,
     ],
   );
 
@@ -250,7 +257,28 @@ export function ComfyStudioModal({
       comfy_config: currentConfig,
     });
     if (ok) {
-      board.pushToast("success", "Saved ComfyUI project defaults & style wrapper");
+      board.pushToast(
+        "success",
+        "Saved ComfyUI project defaults & style wrapper",
+      );
+    }
+  };
+
+  const handleUseActiveWorkflowAsDefault = async () => {
+    setWorkflowMode("active_workflow");
+    const updated: ComfyProjectConfig = {
+      ...currentConfig,
+      workflow_mode: "active_workflow",
+    };
+    const ok = await board.updateProjectMetadata({
+      ...(project.metadata ?? {}),
+      comfy_config: updated,
+    });
+    if (ok) {
+      board.pushToast(
+        "success",
+        "Active ComfyUI workflow set as deck default for card generation!",
+      );
     }
   };
 
@@ -340,11 +368,15 @@ export function ComfyStudioModal({
   };
 
   return (
-    <Modal title="⚡ ComfyUI Studio — Deck & Card Collaboration" onClose={onClose}>
+    <Modal
+      title="⚡ ComfyUI Studio — Deck & Card Collaboration"
+      onClose={onClose}
+      wide
+    >
       <div
         className="comfy-studio-modal"
         data-testid="comfy-studio-modal"
-        style={{ minWidth: 580, maxWidth: 760 }}
+        style={{ width: "100%", maxWidth: "100%" }}
       >
         {/* Top Status & Tab Navigation */}
         <div
@@ -356,9 +388,10 @@ export function ComfyStudioModal({
             marginBottom: 14,
             borderBottom: "1px solid var(--border, rgba(128,128,128,0.25))",
             paddingBottom: 10,
+            flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <button
               type="button"
               className={activeTab === "batch" ? "primary" : ""}
@@ -374,6 +407,14 @@ export function ComfyStudioModal({
               data-testid="comfy-tab-history"
             >
               📥 Send from ComfyUI ({historyItems.length})
+            </button>
+            <button
+              type="button"
+              className={activeTab === "canvas" ? "primary" : ""}
+              onClick={() => setActiveTab("canvas")}
+              data-testid="comfy-tab-canvas"
+            >
+              🎨 Workflow Canvas
             </button>
             <button
               type="button"
@@ -429,9 +470,7 @@ export function ComfyStudioModal({
                     Current Grid Filter Only (
                     {filteredSockets.filter((s) => !s.locked).length})
                   </option>
-                  <option value="single_socket">
-                    Single Card Position…
-                  </option>
+                  <option value="single_socket">Single Card Position…</option>
                 </select>
               </label>
 
@@ -780,8 +819,7 @@ export function ComfyStudioModal({
                       alignItems: "center",
                       padding: 10,
                       borderRadius: 6,
-                      border:
-                        "1px solid var(--border, rgba(128,128,128,0.25))",
+                      border: "1px solid var(--border, rgba(128,128,128,0.25))",
                     }}
                     data-testid={`comfy-history-item-${idx}`}
                   >
@@ -847,7 +885,142 @@ export function ComfyStudioModal({
           </div>
         )}
 
-        {/* TAB 3: STYLE WRAPPER & CONNECTION */}
+        {/* TAB 3: COMFYUI INTERACTIVE CANVAS */}
+        {activeTab === "canvas" && (
+          <div
+            className="comfy-canvas-container"
+            data-testid="comfy-canvas-panel"
+          >
+            <div className="comfy-canvas-toolbar">
+              <div className="comfy-canvas-toolbar-left">
+                <span
+                  className="badge"
+                  style={{
+                    fontSize: 12,
+                    color: serverInfo?.online
+                      ? "var(--ok, #2e7d32)"
+                      : "var(--muted)",
+                  }}
+                >
+                  {serverInfo?.online
+                    ? `● Connected (${host})`
+                    : `○ Offline (${host})`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCanvasKey((k) => k + 1);
+                    refreshServerAndHistory(host);
+                  }}
+                  title="Reload ComfyUI Canvas & re-check status"
+                  data-testid="comfy-canvas-reload-btn"
+                >
+                  🔄 Reload Canvas
+                </button>
+                <a
+                  href={host}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button"
+                  style={{
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                  title="Open ComfyUI web interface in an external browser tab or window"
+                  data-testid="comfy-canvas-open-external-btn"
+                >
+                  ↗ Open in Browser
+                </a>
+              </div>
+
+              <div className="comfy-canvas-toolbar-right">
+                {workflowMode === "active_workflow" ? (
+                  <span
+                    className="badge"
+                    style={{
+                      backgroundColor: "rgba(63, 110, 140, 0.2)",
+                      borderColor: "var(--accent, #3f6e8c)",
+                      color: "var(--accent-strong, #6fa0be)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    ✓ Using Canvas Workflow as Deck Default
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={handleUseActiveWorkflowAsDefault}
+                    title="Cartouche will inject card prompts directly into this ComfyUI canvas workflow"
+                    data-testid="use-canvas-workflow-btn"
+                  >
+                    ⭐ Use Active Workflow as Deck Default
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="comfy-iframe-wrapper">
+              {serverInfo?.online ? (
+                <iframe
+                  key={canvasKey}
+                  src={host}
+                  title="ComfyUI Interactive Canvas"
+                  allow="clipboard-read; clipboard-write"
+                  data-testid="comfy-canvas-iframe"
+                />
+              ) : (
+                <div className="comfy-offline-notice">
+                  <h3>ComfyUI is not reachable at {host}</h3>
+                  <p>
+                    Please start your ComfyUI server with{" "}
+                    <code>python main.py --listen</code> and make sure it is
+                    running on port 8188.
+                  </p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => refreshServerAndHistory(host)}
+                  >
+                    Retry Connection
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--text-dim)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <span>
+                💡 <strong>Tip:</strong> Build, arrange, or load any workflow in
+                the canvas above. When generating cards, Cartouche replaces the
+                positive prompt with your card description and generates
+                directly into your deck.
+              </span>
+              {serverInfo?.active_workflow?.has_active_workflow && (
+                <span style={{ fontFamily: "monospace", fontSize: 11 }}>
+                  Detected nodes: CLIPTextEncode #
+                  {serverInfo.active_workflow.pos_prompt_node ?? "auto"}
+                  {serverInfo.active_workflow.checkpoint_node
+                    ? ` · Checkpoint #${serverInfo.active_workflow.checkpoint_node}`
+                    : ""}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: STYLE WRAPPER & CONNECTION */}
         {activeTab === "settings" && (
           <div data-testid="comfy-settings-panel">
             <div
@@ -874,6 +1047,98 @@ export function ComfyStudioModal({
               >
                 Test Connection
               </button>
+            </div>
+
+            <div
+              style={{
+                background: "var(--surface-2, rgba(128,128,128,0.08))",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                marginBottom: 14,
+              }}
+            >
+              <span
+                style={{ fontWeight: 600, display: "block", marginBottom: 6 }}
+              >
+                Card Generation Workflow Engine
+              </span>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  flexWrap: "wrap",
+                  marginBottom: 8,
+                }}
+              >
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="default_workflow_mode"
+                    value="builtin"
+                    checked={workflowMode === "builtin"}
+                    onChange={() => setWorkflowMode("builtin")}
+                  />
+                  <span>Built-in Cartouche SD/SDXL Graph (Standard)</span>
+                </label>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="default_workflow_mode"
+                    value="active_workflow"
+                    checked={workflowMode === "active_workflow"}
+                    onChange={() => setWorkflowMode("active_workflow")}
+                  />
+                  <span>Active ComfyUI Canvas Workflow (Custom)</span>
+                </label>
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-dim)" }}>
+                {workflowMode === "active_workflow"
+                  ? "Cartouche will preserve your active ComfyUI canvas node graph, injecting card title/descriptions into positive CLIPTextEncode and delivering rendered outputs to sockets."
+                  : "Cartouche generates a clean, self-contained KSampler + SD/SDXL graph using the checkpoint and sampler settings configured in the generation panel."}
+              </p>
+
+              {workflowMode === "active_workflow" && (
+                <details style={{ marginTop: 10, fontSize: 12 }}>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      color: "var(--accent)",
+                      userSelect: "none",
+                    }}
+                  >
+                    Optional: Custom Workflow JSON Override
+                  </summary>
+                  <div style={{ marginTop: 8 }}>
+                    <textarea
+                      rows={6}
+                      value={customWorkflowJson}
+                      placeholder="Paste exported ComfyUI API format JSON (or leave blank to automatically capture the live canvas workflow)..."
+                      aria-label="Custom Workflow JSON"
+                      style={{
+                        width: "100%",
+                        fontFamily: "monospace",
+                        fontSize: 11,
+                        resize: "vertical",
+                        boxSizing: "border-box",
+                      }}
+                      onChange={(e) => setCustomWorkflowJson(e.target.value)}
+                    />
+                  </div>
+                </details>
+              )}
             </div>
 
             {serverInfo?.active_workflow.has_active_workflow && (

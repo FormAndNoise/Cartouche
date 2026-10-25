@@ -8,6 +8,7 @@ import {
   type Socket,
 } from "../api/types";
 import { useBoard } from "../state/context";
+import type { ComfyStudioTab } from "./ComfyStudioModal";
 
 const RESOLUTION_PRESETS = [
   { label: "Tarot Standard (768×1344)", width: 768, height: 1344 },
@@ -20,7 +21,7 @@ export interface ComfyGeneratorSectionProps {
   socket: Socket;
   loadedWorkMeta?: ComfyWorkMetadata | null;
   onClearLoadedMeta?: () => void;
-  onOpenComfyStudio?: (tab: "batch" | "history" | "settings") => void;
+  onOpenComfyStudio?: (tab: ComfyStudioTab) => void;
 }
 
 export function ComfyGeneratorSection({
@@ -79,7 +80,11 @@ export function ComfyGeneratorSection({
       .then((info) => {
         if (!active) return;
         setServerInfo(info);
-        if (info.online && info.models.length > 0 && !info.models.includes(model)) {
+        if (
+          info.online &&
+          info.models.length > 0 &&
+          !info.models.includes(model)
+        ) {
           setModel(info.models[0]);
         }
       })
@@ -215,7 +220,15 @@ export function ComfyGeneratorSection({
         this socket.
       </p>
 
-      <div className="comfy-grid-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+      <div
+        className="comfy-grid-2col"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+          marginBottom: 8,
+        }}
+      >
         <label className="field" style={{ margin: 0 }}>
           <span>Model / Checkpoint</span>
           <select
@@ -288,7 +301,9 @@ export function ComfyGeneratorSection({
             aria-label="Steps"
             value={steps}
             disabled={socket.locked || isGenerating}
-            onChange={(e) => setSteps(Math.max(1, Number(e.target.value) || 20))}
+            onChange={(e) =>
+              setSteps(Math.max(1, Number(e.target.value) || 20))
+            }
           />
         </label>
 
@@ -321,7 +336,10 @@ export function ComfyGeneratorSection({
             }}
           >
             {RESOLUTION_PRESETS.map((p) => (
-              <option key={`${p.width}x${p.height}`} value={`${p.width}x${p.height}`}>
+              <option
+                key={`${p.width}x${p.height}`}
+                value={`${p.width}x${p.height}`}
+              >
                 {p.label}
               </option>
             ))}
@@ -377,9 +395,7 @@ export function ComfyGeneratorSection({
             checked={workflowMode === "active_workflow"}
             disabled={socket.locked || isGenerating}
             onChange={(e) =>
-              setWorkflowMode(
-                e.target.checked ? "active_workflow" : "builtin",
-              )
+              setWorkflowMode(e.target.checked ? "active_workflow" : "builtin")
             }
           />
           <span>Inject into Active ComfyUI Workflow</span>
@@ -418,14 +434,24 @@ export function ComfyGeneratorSection({
         </button>
 
         {onOpenComfyStudio && (
-          <button
-            type="button"
-            disabled={socket.locked}
-            onClick={() => onOpenComfyStudio("history")}
-            data-testid="comfy-pull-history-btn"
-          >
-            📥 Pull Image from ComfyUI…
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={socket.locked}
+              onClick={() => onOpenComfyStudio("history")}
+              data-testid="comfy-pull-history-btn"
+            >
+              📥 Pull Image from ComfyUI…
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenComfyStudio("canvas")}
+              data-testid="comfy-open-canvas-btn"
+              title="Open interactive ComfyUI workflow canvas"
+            >
+              🎨 Workflow Canvas
+            </button>
+          </>
         )}
       </div>
     </section>
